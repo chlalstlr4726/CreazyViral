@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import clsx from "clsx";
-import { History, Home, Link2, MessageSquareText, Sparkles } from "lucide-react";
+import { History, Home, Link2, Menu, MessageSquareText, Sparkles, X } from "lucide-react";
 import { useStore } from "@/lib/store";
 
 const NAV = [
@@ -16,10 +17,36 @@ const NAV = [
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const { ready, toast, cardSource } = useStore();
+  const [open, setOpen] = useState(false); // 기본은 닫힘
+
+  // 메뉴를 눌러 이동하면 자동으로 닫고, Esc로도 닫는다
+  useEffect(() => setOpen(false), [path]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   return (
     <div className="min-h-screen">
-      <aside className="fixed inset-y-0 left-0 z-10 flex w-60 flex-col border-r border-gray-200 bg-white">
+      <button
+        aria-label="메뉴 열기"
+        aria-expanded={open}
+        onClick={() => setOpen(true)}
+        className="fixed top-4 left-4 z-20 grid h-10 w-10 place-items-center rounded-md border border-gray-200 bg-white text-gray-700 shadow-xs hover:bg-gray-50"
+      >
+        <Menu size={18} />
+      </button>
+
+      {open && <div className="fixed inset-0 z-30 bg-gray-950/30" onClick={() => setOpen(false)} />}
+
+      <aside
+        inert={!open}
+        className={clsx(
+          "fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-gray-200 bg-white transition-transform duration-200",
+          open ? "translate-x-0 shadow-xl" : "-translate-x-full",
+        )}
+      >
         <div className="flex items-center gap-2.5 px-6 pt-6 pb-8">
           <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-blue-500 to-violet-500 text-white">
             <Sparkles size={16} />
@@ -28,6 +55,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <div className="text-[17px] font-bold tracking-tight">Creazy</div>
             <div className="text-[11px] text-gray-500">데일리 바이럴 카드</div>
           </div>
+          <button
+            aria-label="메뉴 닫기"
+            onClick={() => setOpen(false)}
+            className="ml-auto grid h-8 w-8 place-items-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+          >
+            <X size={17} />
+          </button>
         </div>
         <nav className="flex flex-col gap-1 px-3">
           {NAV.map(({ href, label, icon: Icon }) => {
@@ -70,7 +104,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="ml-60 min-h-screen px-10 py-8">
+      <main className="min-h-screen px-10 pt-16 pb-8">
         <div className="mx-auto max-w-[1200px]">{ready ? children : <div className="h-96" />}</div>
       </main>
 
