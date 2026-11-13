@@ -10,7 +10,7 @@ const LEVEL = ["", "쉬움", "보통", "어려움"];
 export function buildCardBlocks(cards: Card[], baseUrl: string) {
   const base = baseUrl.replace(/\/$/, "");
   const blocks: unknown[] = [
-    { type: "header", text: { type: "plain_text", text: "오늘 만들 콘텐츠 2가지", emoji: true } },
+    { type: "header", text: { type: "plain_text", text: `오늘 만들 콘텐츠 ${cards.length}가지`, emoji: true } },
     {
       type: "context",
       elements: [{ type: "mrkdwn", text: "카드를 열어 스토리보드를 보고, 하나를 선택해 주세요." }],

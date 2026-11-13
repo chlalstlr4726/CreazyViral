@@ -9,7 +9,7 @@ import { buildDirection } from "@/lib/recommend";
 import { koDate } from "@/lib/format";
 import { TODAY } from "@/lib/mock";
 import { CardTile, PassDialog } from "./CardTile";
-import { Button, Chip } from "./ui";
+import { Button, Chip, TypeBadge } from "./ui";
 
 export function TodaySection() {
   const router = useRouter();
@@ -25,7 +25,7 @@ export function TodaySection() {
       const res = await fetch("/api/slack/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cards: [s.todayCard("dummy"), s.todayCard("service")] }),
+        body: JSON.stringify({ cards: [s.todayCard("dummy"), s.todayCard("service")].filter(Boolean) }),
       });
       const data = await res.json();
       setSendMsg(data.ok ? "슬랙으로 보냈어요" : data.error === "env_missing" ? ".env.local의 슬랙 설정을 확인해 주세요" : `전송 실패: ${data.error}`);
@@ -77,6 +77,7 @@ export function TodaySection() {
       <div className="grid grid-cols-2 gap-6">
         {types.map((t) => {
           const card = s.todayCard(t);
+          if (!card) return <EmptyCard key={t} type={t} />;
           return (
             <CardTile
               key={card.card_id}
@@ -104,6 +105,16 @@ export function TodaySection() {
           }}
         />
       )}
+    </div>
+  );
+}
+
+function EmptyCard({ type }: { type: CardType }) {
+  return (
+    <div className="flex min-h-72 flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
+      <TypeBadge type={type} />
+      <p className="mt-4 text-lg font-bold">오늘의 카드가 아직 없어요</p>
+      <p className="mt-1.5 text-sm leading-relaxed text-gray-500">매일 아침 카드 API가 카드를 만들어 저장하면 여기에 나타나요.</p>
     </div>
   );
 }

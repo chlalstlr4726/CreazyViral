@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Check, Copy, ExternalLink, Music, RefreshCw } from "lucide-react";
@@ -18,7 +18,21 @@ export default function CardDetail() {
   const s = useStore();
   const [passOpen, setPassOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const card = s.cardById(decodeURIComponent(id));
+  const [missing, setMissing] = useState(false);
+  const decoded = decodeURIComponent(id);
+  const card = s.cardById(decoded);
+
+  // 오늘 카드가 아닌 지난 카드(예: 슬랙에 남은 어제 링크)는 DB에서 따로 불러온다
+  useEffect(() => {
+    if (card) return;
+    fetch(`/api/cards/${encodeURIComponent(decoded)}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => (d?.card ? s.addCard(d.card) : setMissing(true)))
+      .catch(() => setMissing(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [card, decoded]);
+
+  if (!card && !missing) return <div className="h-96" />;
 
   if (!card) {
     return (
@@ -33,7 +47,7 @@ export default function CardDetail() {
 
   const status = s.statusOf(card.card_id);
   const isToday = card.date === TODAY;
-  const isCurrent = isToday && s.todayCard(card.type).card_id === card.card_id;
+  const isCurrent = isToday && s.todayCard(card.type)?.card_id === card.card_id;
   const total = card.storyboard.at(-1)?.end_s ?? 0;
 
   return (

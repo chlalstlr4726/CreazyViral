@@ -16,7 +16,7 @@ export default function HistoryPage() {
 
   const groups = useMemo(() => {
     const map = new Map<string, Card[]>();
-    const today: Card[] = [s.todayCard("dummy"), s.todayCard("service")];
+    const today = [s.todayCard("dummy"), s.todayCard("service")].filter(Boolean) as Card[];
     map.set(TODAY, today);
     for (const c of HISTORY_CARDS) map.set(c.date, [...(map.get(c.date) ?? []), c]);
     return [...map.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1));

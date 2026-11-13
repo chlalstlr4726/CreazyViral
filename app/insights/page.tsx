@@ -6,12 +6,13 @@ import { useStore } from "@/lib/store";
 import { HISTORY_CARDS } from "@/lib/mock";
 import { buildDevMessages, toPlainText, type DevMessage } from "@/lib/devInsights";
 import { Button, Chip, Panel } from "@/components/ui";
+import type { Card } from "@/lib/types";
 
 export default function InsightsPage() {
   const s = useStore();
   const [copied, setCopied] = useState<string | null>(null);
 
-  const cards = useMemo(() => [...HISTORY_CARDS, s.todayCard("dummy"), s.todayCard("service")], [s]);
+  const cards = useMemo(() => [...HISTORY_CARDS, ...([s.todayCard("dummy"), s.todayCard("service")].filter(Boolean) as Card[])], [s]);
   const msgs = useMemo(() => buildDevMessages({ cards, events: s.events, posts: s.posts }), [cards, s.events, s.posts]);
 
   const owners: DevMessage["to"][] = ["도하", "승원"];

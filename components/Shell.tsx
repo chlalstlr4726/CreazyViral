@@ -15,7 +15,7 @@ const NAV = [
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
-  const { ready, toast } = useStore();
+  const { ready, toast, cardSource } = useStore();
 
   return (
     <div className="min-h-screen">
@@ -48,9 +48,25 @@ export function Shell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
         <div className="mt-auto m-4 rounded-lg bg-gray-50 p-3 text-xs leading-relaxed text-gray-500">
-          <span className="font-semibold text-gray-700">샘플 데이터로 표시 중</span>
-          <br />
-          Supabase와 승원 카드 API를 연결하면 실제 데이터로 바뀌어요.
+          {cardSource === "supabase" ? (
+            <>
+              <span className="font-semibold text-gray-700">카드는 실제 데이터</span>
+              <br />
+              성과·히스토리는 아직 샘플이에요.
+            </>
+          ) : cardSource === "error" ? (
+            <>
+              <span className="font-semibold text-red-600">카드 DB 연결 실패</span>
+              <br />
+              샘플 카드로 대신 보여주고 있어요.
+            </>
+          ) : (
+            <>
+              <span className="font-semibold text-gray-700">샘플 데이터로 표시 중</span>
+              <br />
+              Supabase를 연결하면 카드가 실제 데이터로 바뀌어요.
+            </>
+          )}
         </div>
       </aside>
 

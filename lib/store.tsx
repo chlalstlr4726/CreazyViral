@@ -9,11 +9,16 @@ const KEY = "viral-dashboard:events:v1";
 
 export const shortcode = (url: string) => url.match(/\/(?:reel|reels|p)\/([A-Za-z0-9_-]+)/)?.[1] ?? null;
 
+/** 오늘의 카드가 어디서 왔는지: supabase = 실제 카드 DB, sample = 샘플, error = DB 연결 실패(샘플로 대체) */
+export type CardSource = "loading" | "supabase" | "sample" | "error";
+
 interface Store {
   ready: boolean;
+  cardSource: CardSource;
   events: CardEvent[];
   cardById: (id: string) => Card | undefined;
-  todayCard: (type: CardType) => Card;
+  addCard: (card: Card) => void;
+  todayCard: (type: CardType) => Card | undefined;
   statusOf: (id: string) => "selected" | "passed" | null;
   passReasonOf: (id: string) => string | undefined;
   linkedUrlOf: (id: string) => string | undefined;
@@ -38,15 +43,27 @@ const cardIndex = new Map<string, Card>();
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [local, setLocal] = useState<CardEvent[]>([]);
-  const [ready, setReady] = useState(false);
+  const [localReady, setLocalReady] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [remote, setRemote] = useState<{ source: CardSource; cards: Card[] }>({ source: "loading", cards: [] });
+  const [extra, setExtra] = useState<Card[]>([]);
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem(KEY);
       if (raw) setLocal(JSON.parse(raw));
     } catch {}
-    setReady(true);
+    setLocalReady(true);
+  }, []);
+
+  // 오늘의 카드: 서버가 Supabase `cards`에서 읽어 준다. 설정이 없으면 샘플 카드로 동작.
+  useEffect(() => {
+    fetch("/api/cards/today", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d: { source?: string; cards?: Card[] }) =>
+        setRemote(d.source === "supabase" ? { source: "supabase", cards: d.cards ?? [] } : { source: d.source === "error" ? "error" : "sample", cards: [] }),
+      )
+      .catch(() => setRemote({ source: "error", cards: [] }));
   }, []);
 
   const push = useCallback((e: Omit<CardEvent, "id" | "at">) => {
@@ -66,6 +83,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const events = useMemo(() => [...SEED_EVENTS, ...local], [local]);
 
+  // DB에서 받은 카드가 같은 id의 샘플 카드보다 우선
+  const cardById = useCallback(
+    (id: string) => remote.cards.find((c) => c.card_id === id) ?? extra.find((c) => c.card_id === id) ?? cardIndex.get(id),
+    [remote.cards, extra],
+  );
+
+  const addCard = useCallback((card: Card) => setExtra((prev) => (prev.some((c) => c.card_id === card.card_id) ? prev : [...prev, card])), []);
+
   const regenCount = useCallback(
     (type: CardType) =>
       events.filter((e) => e.action === "regenerated" && e.card_id.startsWith(`${TODAY}-${type}-`)).length,
@@ -73,8 +98,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   );
 
   const todayCard = useCallback(
-    (type: CardType) => pools[type][regenCount(type) % pools[type].length],
-    [regenCount],
+    (type: CardType): Card | undefined =>
+      remote.source === "supabase" ? remote.cards.find((c) => c.type === type) : pools[type][regenCount(type) % pools[type].length],
+    [remote, regenCount],
   );
 
   const latest = useCallback(
@@ -98,16 +124,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const merged: Post[] = POSTS.map((p) => {
       const code = shortcode(p.url);
       const ev = [...linkEvents].reverse().find((e) => shortcode(e.post_url!) === code);
-      const card = ev ? cardIndex.get(ev.card_id) : undefined;
+      const card = ev ? cardById(ev.card_id) : undefined;
       return card ? { ...p, card_id: card.card_id, format: card.format, type: card.type } : p;
     });
     return scorePosts(merged);
-  }, [events]);
+  }, [events, cardById]);
 
   const value: Store = {
-    ready,
+    ready: localReady && remote.source !== "loading",
+    cardSource: remote.source,
     events,
-    cardById: (id) => cardIndex.get(id),
+    cardById,
+    addCard,
     todayCard,
     statusOf,
     passReasonOf: (id) => latest(id, "passed")?.reason,
@@ -121,7 +149,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       flash(`패스 사유를 기록했어요 · ${reason}`);
     },
     regenerate: (type) => {
+      if (remote.source === "supabase") {
+        flash("재생성은 카드 API의 재생성 기능이 연결되면 사용할 수 있어요");
+        return;
+      }
       const cur = todayCard(type);
+      if (!cur) return;
       push({ card_id: cur.card_id, action: "regenerated" });
       flash("다른 소재로 다시 만들었어요");
     },
