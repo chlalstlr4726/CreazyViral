@@ -1,13 +1,7 @@
 "use client";
 
-import { TodaySection } from "@/components/TodaySection";
-import { PerformanceSection } from "@/components/PerformanceSection";
+import { AccountTabs } from "@/components/AccountTabs";
 
 export default function Home() {
-  return (
-    <>
-      <TodaySection />
-      <PerformanceSection />
-    </>
-  );
+  return <AccountTabs />;
 }

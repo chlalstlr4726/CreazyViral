@@ -1,4 +1,5 @@
 import type { Card } from "./types";
+import { ACCOUNT_BY_ID, type AccountId } from "./accounts";
 
 // Slack mrkdwn에서 의미가 있는 문자만 이스케이프
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -27,7 +28,7 @@ export function buildCardBlocks(cards: Card[], baseUrl: string) {
         text: {
           type: "mrkdwn",
           text:
-            `*[${TYPE_LABEL[c.type]}] ${esc(c.title)}*\n` +
+            `*[${ACCOUNT_BY_ID[c.account_id as AccountId]?.name ?? "공통"} · ${TYPE_LABEL[c.type]}] ${esc(c.title)}*\n` +
             `포맷 ${esc(c.format)} · 난이도 ${LEVEL[c.difficulty]} · ${c.storyboard.length}컷 ${total}초\n` +
             (hook ? `> 훅: “${esc(hook.caption)}”\n` : "") +
             `_${esc(c.rationale)}_`,

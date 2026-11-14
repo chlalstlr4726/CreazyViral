@@ -15,7 +15,8 @@ export interface StoryboardCut {
 
 /** 승원 API가 내려주는 카드. 상세 내용(스토리보드·프롬프트)은 승원 파트. */
 export interface Card {
-  card_id: string; // 예: 2026-11-13-dummy-0  (마지막 숫자 = 재생성 회차)
+  card_id: string; // 예: 2026-11-13-dummy-moodiee-0  (마지막 숫자 = 재생성 회차)
+  account_id?: string; // 어느 계정용 카드인지: moodiee | creazy | bbakk
   date: string; // YYYY-MM-DD
   type: CardType;
   title: string;

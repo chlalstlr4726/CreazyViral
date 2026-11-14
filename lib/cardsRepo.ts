@@ -2,7 +2,8 @@
 // SUPABASE_SECRET_KEY는 서버 환경변수로만 쓰고 브라우저로 내려보내지 않는다.
 import type { Card } from "./types";
 
-export const CARD_ID = /^\d{4}-\d{2}-\d{2}-(dummy|service)-\d+$/;
+// 예: 2026-11-13-dummy-0 (예전 형식) 또는 2026-11-13-dummy-moodiee-0 (계정 포함)
+export const CARD_ID = /^\d{4}-\d{2}-\d{2}-(dummy|service)(-[a-z0-9_]+)?-\d+$/i;
 
 export const supabaseConfigured = () => !!process.env.SUPABASE_URL && !!process.env.SUPABASE_SECRET_KEY;
 
@@ -31,6 +32,7 @@ export function normalizeCard(row: Record<string, unknown>): Card {
   const d = Number(row.difficulty);
   return {
     card_id: String(row.card_id),
+    account_id: row.account_id ? String(row.account_id) : undefined,
     date: String(row.date),
     type: row.type === "service" ? "service" : "dummy",
     title: String(row.title ?? ""),
@@ -49,16 +51,17 @@ export function normalizeCard(row: Record<string, unknown>): Card {
 
 const regenIndex = (id: string) => Number(id.slice(id.lastIndexOf("-") + 1));
 
-/** 해당 날짜(KST)의 유형별 최신 카드(재생성 회차가 가장 큰 것) 최대 2장 */
+/** 해당 날짜(KST)의 계정·유형별 최신 카드(재생성 회차가 가장 큰 것). 계정마다 최대 2장 */
 export async function fetchTodayCards(date: string): Promise<Card[]> {
   const rows = await query({ select: "*", date: `eq.${date}` });
   const best = new Map<string, Card>();
   for (const row of rows) {
     const c = normalizeCard(row);
-    const cur = best.get(c.type);
-    if (!cur || regenIndex(c.card_id) > regenIndex(cur.card_id)) best.set(c.type, c);
+    const k = `${c.account_id ?? ""}|${c.type}`;
+    const cur = best.get(k);
+    if (!cur || regenIndex(c.card_id) > regenIndex(cur.card_id)) best.set(k, c);
   }
-  return (["dummy", "service"] as const).flatMap((t) => (best.has(t) ? [best.get(t)!] : []));
+  return [...best.values()].sort((a, b) => (a.account_id ?? "").localeCompare(b.account_id ?? "") || a.type.localeCompare(b.type));
 }
 
 export async function fetchCardById(id: string): Promise<Card | null> {

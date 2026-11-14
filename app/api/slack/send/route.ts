@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   const valid =
     Array.isArray(cards) &&
     cards.length >= 1 &&
-    cards.length <= 2 &&
+    cards.length <= 6 &&
     cards.every(
       (c) =>
         typeof c?.card_id === "string" &&
@@ -31,6 +31,6 @@ export async function POST(req: Request) {
   if (!valid) return NextResponse.json({ ok: false, error: "bad_cards" }, { status: 400 });
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? new URL(req.url).origin;
-  const result = await postToSlack(buildCardBlocks(cards!, baseUrl), "오늘 만들 콘텐츠 2가지가 도착했어요");
+  const result = await postToSlack(buildCardBlocks(cards!, baseUrl), `오늘 만들 콘텐츠 ${cards!.length}가지가 도착했어요`);
   return NextResponse.json(result, { status: result.ok ? 200 : 502 });
 }

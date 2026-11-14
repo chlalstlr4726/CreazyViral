@@ -4,14 +4,16 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Lightbulb } from "lucide-react";
 import type { CardType } from "@/lib/types";
+import { ACCOUNT_BY_ID, type AccountId } from "@/lib/accounts";
 import { useStore } from "@/lib/store";
 import { buildDirection } from "@/lib/recommend";
 import { koDate } from "@/lib/format";
 import { TODAY } from "@/lib/mock";
 import { CardTile, PassDialog } from "./CardTile";
-import { Button, Chip, TypeBadge } from "./ui";
+import { Button, Chip, SectionTitle, TypeBadge } from "./ui";
 
-export function TodaySection() {
+export function TodaySection({ accountId }: { accountId: AccountId }) {
+  const account = ACCOUNT_BY_ID[accountId];
   const router = useRouter();
   const s = useStore();
   const [passFor, setPassFor] = useState<string | null>(null);
@@ -25,7 +27,7 @@ export function TodaySection() {
       const res = await fetch("/api/slack/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cards: [s.todayCard("dummy"), s.todayCard("service")].filter(Boolean) }),
+        body: JSON.stringify({ cards: [s.todayCard("dummy", accountId), s.todayCard("service", accountId)].filter(Boolean) }),
       });
       const data = await res.json();
       setSendMsg(data.ok ? "슬랙으로 보냈어요" : data.error === "env_missing" ? ".env.local의 슬랙 설정을 확인해 주세요" : `전송 실패: ${data.error}`);
@@ -36,22 +38,23 @@ export function TodaySection() {
     }
   }
 
-  const direction = useMemo(() => buildDirection(s.posts.filter((p) => p.card_id)), [s.posts]);
+  const direction = useMemo(() => buildDirection(s.posts.filter((p) => p.card_id && p.account_id === accountId)), [s.posts, accountId]);
   const types: CardType[] = ["dummy", "service"];
 
   return (
     <div>
-      <div className="mb-6 relative">
-        <div className="absolute right-0 top-0 flex items-center gap-3">
-          {sendMsg && <span className="text-sm text-gray-500">{sendMsg}</span>}
-          <Button variant="secondary" size="sm" onClick={sendToSlack} disabled={sending}>
-            {sending ? "보내는 중…" : "슬랙으로 테스트 전송"}
-          </Button>
-        </div>
-        <p className="text-sm font-medium text-blue-600">{koDate(TODAY)}</p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight">오늘 만들 콘텐츠 2가지</h1>
-        <p className="mt-1.5 text-gray-500">어제 인스타에서 반응이 컸던 포맷을 우리 소재로 바꿔 놓았어요. 하나를 골라 바로 찍어보세요.</p>
-      </div>
+      <SectionTitle
+        title={`${account.name} · 오늘 만들 콘텐츠 2가지`}
+        desc={`${koDate(TODAY)} · 최근 반응이 컸던 포맷을 @${account.handle} 컨셉에 맞게 바꿔 놓았어요. 하나를 골라 바로 찍어보세요.`}
+        right={
+          <div className="flex items-center gap-3">
+            {sendMsg && <span className="text-sm text-gray-500">{sendMsg}</span>}
+            <Button variant="secondary" size="sm" onClick={sendToSlack} disabled={sending}>
+              {sending ? "보내는 중…" : "슬랙으로 테스트 전송"}
+            </Button>
+          </div>
+        }
+      />
 
       <div className="mb-6 overflow-hidden rounded-xl bg-gradient-to-br from-[#171b45] to-[#2b3282] p-6 text-white shadow-sm">
         <div className="flex items-center gap-2 text-sm font-semibold text-blue-200">
@@ -76,7 +79,7 @@ export function TodaySection() {
 
       <div className="grid grid-cols-2 gap-6">
         {types.map((t) => {
-          const card = s.todayCard(t);
+          const card = s.todayCard(t, accountId);
           if (!card) return <EmptyCard key={t} type={t} />;
           return (
             <CardTile
@@ -90,7 +93,7 @@ export function TodaySection() {
                 router.push(`/cards/${card.card_id}`);
               }}
               onPass={() => setPassFor(card.card_id)}
-              onRegenerate={() => s.regenerate(t)}
+              onRegenerate={() => s.regenerate(t, accountId)}
             />
           );
         })}
@@ -114,7 +117,7 @@ function EmptyCard({ type }: { type: CardType }) {
     <div className="flex min-h-72 flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
       <TypeBadge type={type} />
       <p className="mt-4 text-lg font-bold">오늘의 카드가 아직 없어요</p>
-      <p className="mt-1.5 text-sm leading-relaxed text-gray-500">매일 아침 카드 API가 카드를 만들어 저장하면 여기에 나타나요.</p>
+      <p className="mt-1.5 text-sm leading-relaxed text-gray-500">매일 아침 카드 API가 이 계정의 카드를 만들어 저장하면 여기에 나타나요.</p>
     </div>
   );
 }

@@ -12,7 +12,7 @@ export default function InsightsPage() {
   const s = useStore();
   const [copied, setCopied] = useState<string | null>(null);
 
-  const cards = useMemo(() => [...HISTORY_CARDS, ...([s.todayCard("dummy"), s.todayCard("service")].filter(Boolean) as Card[])], [s]);
+  const cards = useMemo(() => [...HISTORY_CARDS, ...s.allTodayCards()], [s]);
   const msgs = useMemo(() => buildDevMessages({ cards, events: s.events, posts: s.posts }), [cards, s.events, s.posts]);
 
   const owners: DevMessage["to"][] = ["도하", "승원"];

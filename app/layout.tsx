@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { StoreProvider } from "@/lib/store";
+import { ProfilesProvider } from "@/lib/profiles";
 import { Shell } from "@/components/Shell";
 
 export const metadata: Metadata = {
@@ -19,7 +20,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <StoreProvider>
-          <Shell>{children}</Shell>
+          <ProfilesProvider>
+            <Shell>{children}</Shell>
+          </ProfilesProvider>
         </StoreProvider>
       </body>
     </html>

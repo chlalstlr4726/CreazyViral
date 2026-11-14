@@ -7,6 +7,7 @@ import { ArrowLeft, Check, Copy, ExternalLink, Music, RefreshCw } from "lucide-r
 import { useStore } from "@/lib/store";
 import { koDate } from "@/lib/format";
 import { TODAY } from "@/lib/mock";
+import type { AccountId } from "@/lib/accounts";
 import { Button, Chip, Difficulty, Panel, TypeBadge } from "@/components/ui";
 import { PassDialog } from "@/components/CardTile";
 import { LinkPost } from "@/components/LinkPost";
@@ -47,7 +48,7 @@ export default function CardDetail() {
 
   const status = s.statusOf(card.card_id);
   const isToday = card.date === TODAY;
-  const isCurrent = isToday && s.todayCard(card.type)?.card_id === card.card_id;
+  const isCurrent = isToday && !!card.account_id && s.todayCard(card.type, card.account_id as AccountId)?.card_id === card.card_id;
   const total = card.storyboard.at(-1)?.end_s ?? 0;
 
   return (
@@ -147,7 +148,7 @@ export default function CardDetail() {
                 </Button>
                 <div className="flex gap-2">
                   {isCurrent && (
-                    <Button variant="secondary" className="flex-1" onClick={() => s.regenerate(card.type)}>
+                    <Button variant="secondary" className="flex-1" onClick={() => card.account_id && s.regenerate(card.type, card.account_id as AccountId)}>
                       <RefreshCw size={14} /> 재생성
                     </Button>
                   )}

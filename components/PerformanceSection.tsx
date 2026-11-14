@@ -12,9 +12,10 @@ import { Chip, Panel, SectionTitle, TypeBadge } from "./ui";
 
 const PERIODS = [7, 30, 90] as const;
 
-export function PerformanceSection() {
+export function PerformanceSection({ accountId }: { accountId?: string } = {}) {
   const { posts } = useStore();
-  const [acc, setAcc] = useState<string>("all");
+  const [accState, setAcc] = useState<string>("all");
+  const acc = accountId ?? accState;
   const [period, setPeriod] = useState<(typeof PERIODS)[number]>(30);
   const [showAll, setShowAll] = useState(false);
 

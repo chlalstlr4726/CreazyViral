@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { Card, CardEvent, CardType, Post, PostWithScore } from "./types";
 import { HISTORY_CARDS, POSTS, SEED_EVENTS, TODAY, todayPool } from "./mock";
 import { scorePosts } from "./analytics";
+import { ACCOUNT_PROFILES, type AccountId } from "./accounts";
 
 const KEY = "viral-dashboard:events:v1";
 
@@ -18,13 +19,15 @@ interface Store {
   events: CardEvent[];
   cardById: (id: string) => Card | undefined;
   addCard: (card: Card) => void;
-  todayCard: (type: CardType) => Card | undefined;
+  todayCard: (type: CardType, account: AccountId) => Card | undefined;
+  /** 3개 계정의 오늘 카드 전부 (히스토리·개발자 제언용) */
+  allTodayCards: () => Card[];
   statusOf: (id: string) => "selected" | "passed" | null;
   passReasonOf: (id: string) => string | undefined;
   linkedUrlOf: (id: string) => string | undefined;
   select: (id: string) => void;
   pass: (id: string, reason: string) => void;
-  regenerate: (type: CardType) => void;
+  regenerate: (type: CardType, account: AccountId) => void;
   linkPost: (id: string, url: string) => "matched" | "pending";
   posts: PostWithScore[];
   toast: string | null;
@@ -37,9 +40,11 @@ export const useStore = () => {
   return v;
 };
 
-const pools: Record<CardType, Card[]> = { dummy: todayPool("dummy"), service: todayPool("service") };
+const pools = Object.fromEntries(
+  ACCOUNT_PROFILES.map((a) => [a.id, { dummy: todayPool("dummy", a.id), service: todayPool("service", a.id) }]),
+) as Record<AccountId, Record<CardType, Card[]>>;
 const cardIndex = new Map<string, Card>();
-[...HISTORY_CARDS, ...pools.dummy, ...pools.service].forEach((c) => cardIndex.set(c.card_id, c));
+[...HISTORY_CARDS, ...Object.values(pools).flatMap((p) => [...p.dummy, ...p.service])].forEach((c) => cardIndex.set(c.card_id, c));
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [local, setLocal] = useState<CardEvent[]>([]);
@@ -92,15 +97,22 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const addCard = useCallback((card: Card) => setExtra((prev) => (prev.some((c) => c.card_id === card.card_id) ? prev : [...prev, card])), []);
 
   const regenCount = useCallback(
-    (type: CardType) =>
-      events.filter((e) => e.action === "regenerated" && e.card_id.startsWith(`${TODAY}-${type}-`)).length,
+    (type: CardType, account: AccountId) =>
+      events.filter((e) => e.action === "regenerated" && e.card_id.startsWith(`${TODAY}-${type}-${account}-`)).length,
     [events],
   );
 
   const todayCard = useCallback(
-    (type: CardType): Card | undefined =>
-      remote.source === "supabase" ? remote.cards.find((c) => c.type === type) : pools[type][regenCount(type) % pools[type].length],
+    (type: CardType, account: AccountId): Card | undefined =>
+      remote.source === "supabase"
+        ? remote.cards.find((c) => c.type === type && c.account_id === account)
+        : pools[account][type][regenCount(type, account) % pools[account][type].length],
     [remote, regenCount],
+  );
+
+  const allTodayCards = useCallback(
+    () => ACCOUNT_PROFILES.flatMap((a) => (["dummy", "service"] as const).map((t) => todayCard(t, a.id)).filter(Boolean) as Card[]),
+    [todayCard],
   );
 
   const latest = useCallback(
@@ -137,6 +149,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     cardById,
     addCard,
     todayCard,
+    allTodayCards,
     statusOf,
     passReasonOf: (id) => latest(id, "passed")?.reason,
     linkedUrlOf: (id) => latest(id, "linked")?.post_url,
@@ -148,12 +161,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       push({ card_id: id, action: "passed", reason });
       flash(`패스 사유를 기록했어요 · ${reason}`);
     },
-    regenerate: (type) => {
+    regenerate: (type, account) => {
       if (remote.source === "supabase") {
         flash("재생성은 카드 API의 재생성 기능이 연결되면 사용할 수 있어요");
         return;
       }
-      const cur = todayCard(type);
+      const cur = todayCard(type, account);
       if (!cur) return;
       push({ card_id: cur.card_id, action: "regenerated" });
       flash("다른 소재로 다시 만들었어요");

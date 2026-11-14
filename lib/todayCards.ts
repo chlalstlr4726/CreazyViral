@@ -1,5 +1,6 @@
 import type { Card, CardType } from "./types";
 import { makeCard, tplsOf } from "./mock";
+import { ACCOUNT_PROFILES } from "./accounts";
 import { fetchTodayCards, supabaseConfigured } from "./cardsRepo";
 
 /** 한국 시간(KST) 기준 오늘 날짜 YYYY-MM-DD. 서버는 UTC로 돌기 때문에 직접 계산한다. */
@@ -10,11 +11,11 @@ export function kstToday(now = new Date()) {
 /** 개발용 샘플 카드 (Supabase가 설정되지 않았을 때만 사용) */
 function sampleTodayCards(date: string): Card[] {
   const day = Math.floor(Date.parse(`${date}T00:00:00Z`) / 86400_000);
-  const pick = (type: CardType): Card => {
-    const tpls = tplsOf(type);
+  const pick = (type: CardType, account: (typeof ACCOUNT_PROFILES)[number]["id"]): Card => {
+    const tpls = tplsOf(type, account);
     return makeCard(tpls[day % tpls.length], date, 0);
   };
-  return [pick("dummy"), pick("service")];
+  return ACCOUNT_PROFILES.flatMap((a) => [pick("dummy", a.id), pick("service", a.id)]);
 }
 
 /**

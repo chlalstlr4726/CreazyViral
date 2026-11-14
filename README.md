@@ -54,3 +54,10 @@ docs/DEV_MESSAGE.md  도하·승원에게 전달할 메시지
 2. `lib/store.tsx`의 `SEED_EVENTS`/`POSTS`/`cardIndex`와 이벤트 저장(`push`)을 DB 조회·insert로 교체
 3. 오늘 카드(`todayPool`)와 재생성을 승원 API 호출로 교체
 4. 인스타 공식 API 연결 후 `posts`·`post_metric_snapshots` 수집 (게시 후 24h/72h/7d)
+
+## 계정별 탭 (moodiee.ai / creazy.app / bbakk_creazy)
+- 홈은 계정 3개 탭. 탭마다 ① 오늘 추천 카드 2개 ② AI 스토리보드 채팅 ③ 계정 컨셉·소재(추가/수정/삭제) ④ 성과.
+- API는 공통 하나(`/api/chat`): 계정 ID로 컨셉·소재를 가져와 최근 바이럴 탑5 구조에 맞춘 스토리보드를 만듭니다. 성과 조회는 별도(`PerformanceSection`).
+- 컨셉·소재는 Supabase `account_profiles`(마이그레이션 `supabase/migrations/002_account_profiles.sql`)에 저장, 없으면 브라우저 localStorage. 초기값은 `lib/accounts.ts`(노션 기준).
+- 채팅은 `ANTHROPIC_API_KEY`가 있으면 AI, 없으면 규칙 기반 초안. 바이럴 탑5는 현재 `lib/viralSeed.ts` 샘플 → `lib/viral.ts`의 `loadViral()`을 DB 조회로 교체.
+- 카드 테이블에 `account_id` 컬럼이 필요합니다(002 마이그레이션에 포함).
