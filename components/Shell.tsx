@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import clsx from "clsx";
-import { History, Home, Link2, Menu, MessageSquareText, Sparkles, X } from "lucide-react";
+import { History, Home, Link2, Menu, MessageSquareText, X } from "lucide-react";
 import { useStore } from "@/lib/store";
 
 const NAV = [
@@ -49,9 +49,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         )}
       >
         <div className="flex items-center gap-2.5 px-6 pt-6 pb-8">
-          <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-blue-500 to-violet-500 text-white">
-            <Sparkles size={16} />
-          </div>
+          <img src="/logo.png" alt="Creazy" width={36} height={36} className="h-9 w-9 shrink-0" />
           <div className="leading-tight">
             <div className="text-[17px] font-bold tracking-tight">Creazy</div>
             <div className="text-[11px] text-gray-500">데일리 바이럴 카드</div>
