@@ -33,18 +33,19 @@ export function Shell({ children }: { children: React.ReactNode }) {
         aria-label="메뉴 열기"
         aria-expanded={open}
         onClick={() => setOpen(true)}
-        className="fixed top-4 left-4 z-20 grid h-10 w-10 place-items-center rounded-md border border-gray-200 bg-white text-gray-700 shadow-xs hover:bg-gray-50"
+        className={clsx(
+          "fixed top-4 left-4 z-20 grid h-10 w-10 place-items-center rounded-md border border-gray-200 bg-white text-gray-700 shadow-xs hover:bg-gray-50 transition-opacity",
+          open && "pointer-events-none opacity-0",
+        )}
       >
         <Menu size={18} />
       </button>
-
-      {open && <div className="fixed inset-0 z-30 bg-gray-950/30" onClick={() => setOpen(false)} />}
 
       <aside
         inert={!open}
         className={clsx(
           "fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-gray-200 bg-white transition-transform duration-200",
-          open ? "translate-x-0 shadow-xl" : "-translate-x-full",
+          open ? "translate-x-0" : "-translate-x-full",
         )}
       >
         <div className="flex items-center gap-2.5 px-6 pt-6 pb-8">
@@ -104,7 +105,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="min-h-screen px-10 pt-16 pb-8">
+      <main className={clsx("min-h-screen px-10 pt-16 pb-8 transition-[margin] duration-200", open ? "ml-60" : "ml-0")}>
         <div className="mx-auto max-w-[1200px]">{ready ? children : <div className="h-96" />}</div>
       </main>
 
