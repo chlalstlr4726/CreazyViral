@@ -50,15 +50,6 @@ export function PerformanceSection({ accountId }: { accountId?: string } = {}) {
       />
 
       <div className="mb-5 flex flex-wrap items-center gap-2">
-        <FilterChip active={acc === "all"} onClick={() => setAcc("all")}>
-          전체 계정 {ACCOUNTS.length}
-        </FilterChip>
-        {ACCOUNTS.map((a) => (
-          <FilterChip key={a.id} active={acc === a.id} onClick={() => setAcc(a.id)}>
-            <span className="h-2 w-2 rounded-full" style={{ background: a.color }} />@{a.handle}
-            {a.status === "expired" && <span className="text-[10px] text-red-500">만료</span>}
-          </FilterChip>
-        ))}
         <div className="ml-auto inline-flex rounded-md border border-gray-200 bg-white p-0.5">
           {PERIODS.map((p) => (
             <button
