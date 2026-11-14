@@ -51,7 +51,7 @@ export function normalizeCard(row: Record<string, unknown>): Card {
 
 const regenIndex = (id: string) => Number(id.slice(id.lastIndexOf("-") + 1));
 
-/** 해당 날짜(KST)의 계정·유형별 최신 카드(재생성 회차가 가장 큰 것). 계정마다 최대 2장 */
+/** 해당 날짜(KST)의 계정/유형별 최신 카드(재생성 회차가 가장 큰 것). 계정마다 최대 2장 */
 export async function fetchTodayCards(date: string): Promise<Card[]> {
   const rows = await query({ select: "*", date: `eq.${date}` });
   const best = new Map<string, Card>();

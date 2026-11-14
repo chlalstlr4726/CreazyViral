@@ -35,7 +35,7 @@ export default function AccountsPage() {
             <div className="min-w-0 flex-1">
               <div className="truncate font-semibold">@{a.handle}</div>
               <div className="text-sm text-gray-500">
-                {a.name} · 팔로워 {compact(a.followers)}
+                {a.name}, 팔로워 {compact(a.followers)}
               </div>
             </div>
             {a.status === "connected" ? <Chip tone="green">연결됨</Chip> : <Chip tone="red">재연결 필요</Chip>}

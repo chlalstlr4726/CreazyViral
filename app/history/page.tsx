@@ -66,7 +66,7 @@ export default function HistoryPage() {
                         {st === "selected" ? (
                           <Chip tone="blue">선택</Chip>
                         ) : st === "passed" ? (
-                          <Chip tone="red">패스 · {s.passReasonOf(c.card_id)}</Chip>
+                          <Chip tone="red">패스: {s.passReasonOf(c.card_id)}</Chip>
                         ) : (
                           <span className="text-xs">—</span>
                         )}

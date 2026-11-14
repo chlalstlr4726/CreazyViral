@@ -1,4 +1,4 @@
-// 서버 전용: 계정별 컨셉·소재를 Supabase `account_profiles` 테이블에 저장/조회한다.
+// 서버 전용: 계정별 컨셉/소재를 Supabase `account_profiles` 테이블에 저장/조회한다.
 // 테이블이 없거나 Supabase가 설정되지 않았으면 호출하는 쪽이 브라우저 저장으로 대신한다.
 import { ACCOUNT_BY_ID, type AccountId, type Concept, type Material } from "./accounts";
 import { sanitizeConcept, sanitizeMaterials } from "./chat";

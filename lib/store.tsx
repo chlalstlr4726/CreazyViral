@@ -20,7 +20,7 @@ interface Store {
   cardById: (id: string) => Card | undefined;
   addCard: (card: Card) => void;
   todayCard: (type: CardType, account: AccountId) => Card | undefined;
-  /** 3개 계정의 오늘 카드 전부 (히스토리·개발자 제언용) */
+  /** 3개 계정의 오늘 카드 전부 (히스토리/개발자 제언용) */
   allTodayCards: () => Card[];
   statusOf: (id: string) => "selected" | "passed" | null;
   passReasonOf: (id: string) => string | undefined;
@@ -159,7 +159,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     },
     pass: (id, reason) => {
       push({ card_id: id, action: "passed", reason });
-      flash(`패스 사유를 기록했어요 · ${reason}`);
+      flash(`패스 사유를 기록했어요: ${reason}`);
     },
     regenerate: (type, account) => {
       if (remote.source === "supabase") {

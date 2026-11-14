@@ -172,7 +172,7 @@ export function PerformanceSection({ accountId }: { accountId?: string } = {}) {
       <Panel className="mt-6 overflow-hidden">
         <div className="flex items-center justify-between px-6 pt-5 pb-3">
           <div className="font-bold">게시물별 성과</div>
-          <span className="text-[13px] text-gray-400">{cur.length}개 · 최근 {period}일</span>
+          <span className="text-[13px] text-gray-400">{cur.length}개, 최근 {period}일</span>
         </div>
         <table className="w-full text-sm">
           <thead>

@@ -8,12 +8,12 @@ export interface StoryboardCut {
   cut: number;
   start_s: number;
   end_s: number;
-  visual: string; // 화면·촬영
+  visual: string; // 화면/촬영
   caption: string; // 자막/멘트
   note?: string; // 비고
 }
 
-/** 승원 API가 내려주는 카드. 상세 내용(스토리보드·프롬프트)은 승원 파트. */
+/** 승원 API가 내려주는 카드. 상세 내용(스토리보드/프롬프트)은 승원 파트. */
 export interface Card {
   card_id: string; // 예: 2026-11-13-dummy-moodiee-0  (마지막 숫자 = 재생성 회차)
   account_id?: string; // 어느 계정용 카드인지: moodiee | creazy | bbakk

@@ -28,8 +28,8 @@ export function buildCardBlocks(cards: Card[], baseUrl: string) {
         text: {
           type: "mrkdwn",
           text:
-            `*[${ACCOUNT_BY_ID[c.account_id as AccountId]?.name ?? "공통"} · ${TYPE_LABEL[c.type]}] ${esc(c.title)}*\n` +
-            `포맷 ${esc(c.format)} · 난이도 ${LEVEL[c.difficulty]} · ${c.storyboard.length}컷 ${total}초\n` +
+            `*[${ACCOUNT_BY_ID[c.account_id as AccountId]?.name ?? "공통"} / ${TYPE_LABEL[c.type]}] ${esc(c.title)}*\n` +
+            `포맷 ${esc(c.format)} / 난이도 ${LEVEL[c.difficulty]} / ${c.storyboard.length}컷 ${total}초\n` +
             (hook ? `> 훅: “${esc(hook.caption)}”\n` : "") +
             `_${esc(c.rationale)}_`,
         },

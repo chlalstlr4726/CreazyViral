@@ -7,6 +7,7 @@ import { TodaySection } from "./TodaySection";
 import { ChatPanel } from "./ChatPanel";
 import { ProfilePanel } from "./ProfilePanel";
 import { PerformanceSection } from "./PerformanceSection";
+import { ReferenceSection } from "./ReferenceSection";
 
 const KEY = "viral-dashboard:tab";
 
@@ -51,6 +52,7 @@ export function AccountTabs() {
 
       <div key={tab}>
         <TodaySection accountId={tab} />
+        <ReferenceSection />
         <ChatPanel accountId={tab} />
         <ProfilePanel accountId={tab} />
         <PerformanceSection accountId={tab} />

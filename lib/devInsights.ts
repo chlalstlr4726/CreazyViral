@@ -13,7 +13,7 @@ export interface DevMessage {
 const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0);
 
 /**
- * 쌓인 피드백(card_events) + 성과(posts)로 도하(점수/분석)·승원(카드 생성 API)에게 보낼 제안을 만든다.
+ * 쌓인 피드백(card_events) + 성과(posts)로 도하(점수/분석)/승원(카드 생성 API)에게 보낼 제안을 만든다.
  * 모든 제안은 표본 수 기준(MIN_N)을 넘을 때만 나온다.
  */
 export function buildDevMessages(args: { cards: Card[]; events: CardEvent[]; posts: PostWithScore[] }): DevMessage[] {
@@ -36,18 +36,18 @@ export function buildDevMessages(args: { cards: Card[]; events: CardEvent[]; pos
     const map: Record<string, { to: DevMessage["to"]; title: string; suggestion: string }> = {
       "촬영 불가": {
         to: "승원",
-        title: "촬영 난이도·자원 제약을 생성 단계에서 하드 제약으로",
+        title: "촬영 난이도/자원 제약을 생성 단계에서 하드 제약으로",
         suggestion:
           "회사 정보 리스트의 ‘촬영 가능 인원/공간/소품’을 프롬프트에 필수 제약으로 넣고, difficulty가 3인 카드는 하루 1장 이하로 제한해 주세요. 제약을 못 지킨 카드는 반환 전 자체 검증으로 걸러주세요.",
       },
       "톤이 안 맞음": {
         to: "승원",
         title: "브랜드 톤 가이드를 few-shot으로 보강",
-        suggestion: "채택된 카드의 제목·훅·자막 3~5개를 ‘브랜드 톤 예시’로 프롬프트에 넣고, 패스된 카드는 ‘피해야 할 톤’ 예시로 넣어주세요 (card_events에서 조회 가능).",
+        suggestion: "채택된 카드의 제목/훅/자막 3~5개를 ‘브랜드 톤 예시’로 프롬프트에 넣고, 패스된 카드는 ‘피해야 할 톤’ 예시로 넣어주세요 (card_events에서 조회 가능).",
       },
       "이미 했음": {
         to: "승원",
-        title: "최근 소재·포맷 중복 방지 입력 추가",
+        title: "최근 소재/포맷 중복 방지 입력 추가",
         suggestion: "생성 요청에 ‘최근 14일 사용한 asset_ids와 format’을 함께 넘기고 중복을 금지해 주세요. 대시보드가 이 목록을 API로 제공할 수 있어요 (v_card_feedback).",
       },
       재미없음: {
@@ -89,7 +89,7 @@ export function buildDevMessages(args: { cards: Card[]; events: CardEvent[]; pos
     });
   }
 
-  // ── 포맷 성과/선택률 → 도하·승원 ────────────
+  // ── 포맷 성과/선택률 → 도하/승원 ────────────
   const stats = formatStats(posts.filter((p) => p.format)).filter((f) => !f.lowN);
   for (const f of stats) {
     const list = cards.filter((c) => c.format === f.format);

@@ -1,6 +1,6 @@
 "use client";
 
-// 계정별 컨셉·소재의 편집 상태.
+// 계정별 컨셉/소재의 편집 상태.
 // - 저장 위치: Supabase `account_profiles`(팀 공용) → 테이블이 없으면 이 브라우저(localStorage)
 // - 기본값은 lib/accounts.ts(노션 기준 초안). 편집하면 그 값이 우선하고, '초기값으로 되돌리기'로 복원.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";

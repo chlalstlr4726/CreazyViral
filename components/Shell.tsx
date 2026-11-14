@@ -85,7 +85,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <>
               <span className="font-semibold text-gray-700">카드는 실제 데이터</span>
               <br />
-              성과·히스토리는 아직 샘플이에요.
+              성과/히스토리는 아직 샘플이에요.
             </>
           ) : cardSource === "error" ? (
             <>

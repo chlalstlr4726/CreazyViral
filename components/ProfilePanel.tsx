@@ -10,10 +10,10 @@ import { Button, Chip, Panel, SectionTitle } from "./ui";
 const FIELDS: { key: keyof Concept; label: string; rows: number }[] = [
   { key: "summary", label: "계정 한 줄 요약", rows: 2 },
   { key: "audience", label: "누구에게 말하나", rows: 2 },
-  { key: "tone", label: "말투·등장 방식", rows: 2 },
+  { key: "tone", label: "말투/등장 방식", rows: 2 },
   { key: "cta", label: "영상 끝 행동 유도(CTA)", rows: 2 },
-  { key: "formats", label: "잘 맞는 포맷·참고 계정", rows: 3 },
-  { key: "rules", label: "지킬 표기·금지 사항", rows: 3 },
+  { key: "formats", label: "잘 맞는 포맷/참고 계정", rows: 3 },
+  { key: "rules", label: "지킬 표기/금지 사항", rows: 3 },
 ];
 const STATUSES: MaterialStatus[] = ["아이디어", "예정", "게시함", "보관"];
 const BASES: MaterialBasis[] = ["", "확인된 사실", "확인 필요"];
@@ -42,11 +42,11 @@ export function ProfilePanel({ accountId }: { accountId: AccountId }) {
     <Panel className="mb-6 p-5">
       <SectionTitle
         title="계정 컨셉 및 소재"
-        desc={`@${account.handle} · ${account.owner} 담당 · 노션 '인스타그램·스레드' 페이지를 기준으로 채운 초안이에요. 바로 고쳐 쓰세요.`}
+        desc={`@${account.handle}, ${account.owner} 담당. 노션 '인스타그램/스레드' 페이지를 기준으로 채운 초안이에요. 바로 고쳐 쓰세요.`}
         right={
           <div className="flex items-center gap-3 text-[13px] text-gray-500">
             <span>
-              {storage === "loading" ? "저장소 확인 중…" : storage === "supabase" ? (saved === "saving" ? "저장 중…" : saved === "failed" ? "저장 실패 · 이 브라우저에 보관" : "팀 공유 저장됨") : "이 브라우저에만 저장"}
+              {storage === "loading" ? "저장소 확인 중…" : storage === "supabase" ? (saved === "saving" ? "저장 중…" : saved === "failed" ? "저장 실패 / 이 브라우저에 보관" : "팀 공유 저장됨") : "이 브라우저에만 저장"}
             </span>
             <Button variant="ghost" size="sm" onClick={() => confirm("컨셉과 소재를 초기값(노션 기준)으로 되돌릴까요? 수정한 내용은 사라져요.") && reset(accountId)}>
               <RotateCcw size={14} /> 초기값으로

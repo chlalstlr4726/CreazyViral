@@ -62,7 +62,7 @@ export function buildDirection(linked: PostWithScore[]): Direction {
       lean: t,
       headline:
         t === "dummy"
-          ? "지금은 정보성·소개형이 이어지며 반응이 식고 있어요. 오늘은 Dummy로 분위기를 환기해볼 때예요"
+          ? "지금은 정보성/소개형이 이어지며 반응이 식고 있어요. 오늘은 Dummy로 분위기를 환기해볼 때예요"
           : "Dummy 위주로 올렸는데 반응이 평소보다 낮아요. 오늘은 서비스 소개로 방향을 바꿔보세요",
       evidence: [
         evidenceBase,

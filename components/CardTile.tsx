@@ -90,7 +90,7 @@ export function CardTile({
             <Check size={12} /> 선택함
           </span>
         )}
-        {status === "passed" && <Chip tone="red">패스 · {passReason}</Chip>}
+        {status === "passed" && <Chip tone="red">패스: {passReason}</Chip>}
       </div>
 
       <h3 className="mt-4 text-[22px] font-bold leading-snug tracking-tight">{card.title}</h3>
@@ -114,7 +114,7 @@ export function CardTile({
             <Clock size={12} /> 분량
           </dt>
           <dd className="num font-medium">
-            {card.storyboard.length}컷 · {total}초
+            {card.storyboard.length}컷, {total}초
           </dd>
         </div>
         <div>

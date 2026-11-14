@@ -60,7 +60,7 @@ const TIMES: [number, number][] = [
 ];
 
 const TEMPLATES: Tpl[] = [
-  // ───────── 무디 (moodiee.ai) — 나레이션 없이 자막·화면, 온라인 셀러 대상 ─────────
+  // ───────── 무디 (moodiee.ai) — 나레이션 없이 자막/화면, 온라인 셀러 대상 ─────────
   {
     account: "moodiee",
     type: "dummy",
@@ -103,13 +103,13 @@ const TEMPLATES: Tpl[] = [
     account: "moodiee",
     type: "service",
     format: "기능 한 줄 시연",
-    title: "피그마·포토샵 없이 3분 상세페이지 (수정은 나중에 포토샵으로도 가능)",
+    title: "피그마/포토샵 없이 3분 상세페이지 (수정은 나중에 포토샵으로도 가능)",
     difficulty: 2,
     audio: "Clean Beat",
     commercial: true,
     material: "mo-2",
     cuts: [
-      ["타이머 00:00에서 시작, 빈 화면", "피그마·포토샵 없이 3분"],
+      ["타이머 00:00에서 시작, 빈 화면", "피그마/포토샵 없이 3분"],
       ["제품 정보 입력 → 초안 생성 화면 녹화", "제품 정보만 넣고"],
       ["섹션 순서 바꾸고 문구 수정하는 화면", "마음에 안 드는 곳만 고치고"],
       ["타이머 03:00에서 완성 페이지 공개", "3분 완성"],
@@ -143,7 +143,7 @@ const TEMPLATES: Tpl[] = [
     account: "creazy",
     type: "dummy",
     format: "신입 N시간",
-    title: "입사 N시간차 신입이 만든 상세페이지 (시간·개수는 촬영한 그대로)",
+    title: "입사 N시간차 신입이 만든 상세페이지 (시간/개수는 촬영한 그대로)",
     difficulty: 2,
     audio: "Morning Rush (Remix)",
     commercial: true,
@@ -155,7 +155,7 @@ const TEMPLATES: Tpl[] = [
       ["초안이 나오자 동료들이 모여드는 컷", "초안이 나왔는데요…"],
       ["완성 페이지와 실제 걸린 시간을 자막으로", "걸린 시간 ○분 (실제 값으로 교체)"],
     ],
-    caption: "신입 직원 시리즈 1편 — 시간·개수는 실제 촬영값 그대로 올려 주세요",
+    caption: "신입 직원 시리즈 1편 — 시간/개수는 실제 촬영값 그대로 올려 주세요",
     tags: ["신입", "직장인브이로그", "첫출근", "상세페이지", "크리에이지"],
   },
   {
@@ -171,7 +171,7 @@ const TEMPLATES: Tpl[] = [
       ["회의실, 대표님이 폭탄 발언하는 컷(팀원 시점)", "대표님: 이번 주 안에 다 올리죠"],
       ["팀원들이 서로 눈치 보는 컷", "(침묵)"],
       ["한 팀원이 노트북을 열고 채팅창에 요청 입력", "일단 채팅으로 고쳐 볼게요"],
-      ["화면 녹화: 채팅 한 줄로 문구·이미지가 바뀜", "한 줄이면 수정 끝"],
+      ["화면 녹화: 채팅 한 줄로 문구/이미지가 바뀜", "한 줄이면 수정 끝"],
       ["팀원 전원이 하이파이브", "다음 주제 가져오세요"],
     ],
     caption: "이런 팀 분위기 좋아하시나요? #크리에이지",
@@ -208,9 +208,9 @@ const TEMPLATES: Tpl[] = [
     cuts: [
       ["화장품 제품 사진 한 장 클로즈업", "화장품 상세페이지, 1분 시연"],
       ["제품 사진과 제품명 입력 장면", "사진 올리고 제품명 입력"],
-      ["생성되는 섹션을 위에서 아래로 스크롤", "성분·사용법 섹션까지 자동으로"],
+      ["생성되는 섹션을 위에서 아래로 스크롤", "성분/사용법 섹션까지 자동으로"],
       ["문구 한 곳을 클릭해 바로 수정", "문구는 글자를 눌러 바로 수정"],
-      ["다음 업종 예고 카드(식품·전자제품)", "다음 업종은 댓글로 골라 주세요"],
+      ["다음 업종 예고 카드(식품/전자제품)", "다음 업종은 댓글로 골라 주세요"],
     ],
     caption: "다음엔 어떤 업종을 해 볼까요? 댓글로 알려 주세요",
     tags: ["상세페이지", "화장품", "업종별시연", "AI툴", "크리에이지"],
@@ -285,7 +285,7 @@ const TEMPLATES: Tpl[] = [
     material: "bb-3",
     cuts: [
       ["강사가 두 개의 툴 로고 없이 ‘툴 A + 툴 B’ 카드를 보여 줌", "툴 두 개면 충분해요"],
-      ["툴 A에서 문구·구성을 만드는 화면", "먼저 구성부터"],
+      ["툴 A에서 문구/구성을 만드는 화면", "먼저 구성부터"],
       ["툴 B에서 디자인을 입히는 화면", "그다음 디자인"],
       ["완성된 페이지를 스크롤", "완성"],
       ["강사의 마무리", "순서는 라이브에서 같이 해 봐요"],
@@ -307,7 +307,7 @@ export function makeCard(tpl: Tpl, date: string, regen: number): Card {
     type: tpl.type,
     title: tpl.title,
     format: tpl.format,
-    rationale: `최근 수집한 바이럴 ${n}건에서 ‘${tpl.format}’ 구조가 반복돼요 · ${acc.name} 컨셉에 맞게 바꿨어요 (샘플)`,
+    rationale: `최근 수집한 바이럴 ${n}건에서 ‘${tpl.format}’ 구조가 반복돼요. ${acc.name} 컨셉에 맞게 바꿨어요 (샘플)`,
     difficulty: tpl.difficulty,
     audio: { name: tpl.audio, commercial_ok: tpl.commercial },
     storyboard: tpl.cuts.map(([visual, caption], i) => ({
@@ -330,14 +330,14 @@ export function makeCard(tpl: Tpl, date: string, regen: number): Card {
       `[계정 컨셉] ${acc.concept.summary}\n` +
       `[포맷] ${tpl.format} / [유형] ${tpl.type === "dummy" ? "Dummy 바이럴(도달 목적)" : "서비스 소개(전환 목적)"}\n` +
       `[주제] ${tpl.title}\n` +
-      `[요청] 아래 컷 구성을 그대로 따라 촬영/편집 가이드를 작성하고, 컷마다 필요한 소품·인원·촬영 팁을 알려줘.\n` +
+      `[요청] 아래 컷 구성을 그대로 따라 촬영/편집 가이드를 작성하고, 컷마다 필요한 소품/인원/촬영 팁을 알려줘.\n` +
       tpl.cuts.map(([v, c], i) => `${i + 1}컷(${TIMES[i][0]}~${TIMES[i][1]}초): ${v} / 자막: ${c}`).join("\n") +
       `\n[주의] 계정 규칙을 지켜 줘: ${acc.concept.rules}`,
     asset_ids: [tpl.material],
   };
 }
 
-/** 오늘의 카드 풀(계정·유형별): [기본, 재생성1, 재생성2, ...] */
+/** 오늘의 카드 풀(계정/유형별): [기본, 재생성1, 재생성2, ...] */
 export function todayPool(type: CardType, account: AccountId): Card[] {
   const tpls = tplsOf(type, account);
   return tpls.map((_, k) => makeCard(tpls[k % tpls.length], TODAY, k));

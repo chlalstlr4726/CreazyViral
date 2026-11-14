@@ -5,7 +5,7 @@ import { fetchProfiles, profilesConfigured, saveProfile } from "@/lib/profilesRe
 
 export const dynamic = "force-dynamic";
 
-// 계정별 컨셉·소재 저장소. Supabase(`account_profiles`)가 준비돼 있으면 팀 공용으로 저장하고,
+// 계정별 컨셉/소재 저장소. Supabase(`account_profiles`)가 준비돼 있으면 팀 공용으로 저장하고,
 // 아니면 source=local 을 돌려줘서 화면이 이 브라우저에만 저장한다.
 export async function GET() {
   if (!profilesConfigured()) return NextResponse.json({ source: "local", profiles: {} });

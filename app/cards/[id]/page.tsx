@@ -80,7 +80,7 @@ export default function CardDetail() {
             <div className="flex items-center justify-between px-6 pt-5 pb-3">
               <h2 className="font-bold">스토리보드</h2>
               <span className="num text-sm text-gray-400">
-                {card.storyboard.length}컷 · {total}초
+                {card.storyboard.length}컷, {total}초
               </span>
             </div>
             <table className="w-full text-sm">
@@ -88,8 +88,8 @@ export default function CardDetail() {
                 <tr className="border-y border-gray-100 bg-gray-50 text-left text-xs text-gray-500">
                   <th className="w-16 px-6 py-2.5 font-medium">컷</th>
                   <th className="w-24 py-2.5 font-medium">시간</th>
-                  <th className="py-2.5 font-medium">화면 · 촬영</th>
-                  <th className="py-2.5 pr-6 font-medium">자막 · 멘트</th>
+                  <th className="py-2.5 font-medium">화면 / 촬영</th>
+                  <th className="py-2.5 pr-6 font-medium">자막 / 멘트</th>
                 </tr>
               </thead>
               <tbody>
@@ -140,7 +140,7 @@ export default function CardDetail() {
                 <LinkPost cardId={card.card_id} />
               </div>
             ) : status === "passed" ? (
-              <p className="text-sm text-gray-500">패스한 카드예요 · {s.passReasonOf(card.card_id)}</p>
+              <p className="text-sm text-gray-500">패스한 카드예요. 사유: {s.passReasonOf(card.card_id)}</p>
             ) : (
               <div className="space-y-2">
                 <Button className="w-full" onClick={() => s.select(card.card_id)}>

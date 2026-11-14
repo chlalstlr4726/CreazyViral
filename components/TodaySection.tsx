@@ -44,8 +44,8 @@ export function TodaySection({ accountId }: { accountId: AccountId }) {
   return (
     <div>
       <SectionTitle
-        title={`${account.name} · 오늘 만들 콘텐츠 2가지`}
-        desc={`${koDate(TODAY)} · 최근 반응이 컸던 포맷을 @${account.handle} 컨셉에 맞게 바꿔 놓았어요. 하나를 골라 바로 찍어보세요.`}
+        title="오늘 만들 콘텐츠"
+        desc={`${koDate(TODAY)}. 최근 반응이 컸던 포맷을 @${account.handle} 컨셉에 맞게 바꿔 놓았어요. 하나를 골라 바로 찍어보세요.`}
         right={
           <div className="flex items-center gap-3">
             {sendMsg && <span className="text-sm text-gray-500">{sendMsg}</span>}

@@ -66,13 +66,13 @@ export function kpis(cur: PostWithScore[], prev: PostWithScore[]): Kpi[] {
     { label: "총 조회수", value: sum(cur, (p) => p.metrics.views), prev: sum(prev, (p) => p.metrics.views), kind: "count" },
     { label: "게시물 수", value: cur.length, prev: prev.length, kind: "count" },
     {
-      label: "좋아요 · 댓글",
+      label: "좋아요 / 댓글",
       value: sum(cur, (p) => p.metrics.likes + p.metrics.comments),
       prev: sum(prev, (p) => p.metrics.likes + p.metrics.comments),
       kind: "count",
     },
     {
-      label: "공유 · 저장",
+      label: "공유 / 저장",
       value: sum(cur, (p) => p.metrics.shares + p.metrics.saves),
       prev: sum(prev, (p) => p.metrics.shares + p.metrics.saves),
       kind: "count",

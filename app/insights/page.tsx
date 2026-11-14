@@ -16,7 +16,7 @@ export default function InsightsPage() {
   const msgs = useMemo(() => buildDevMessages({ cards, events: s.events, posts: s.posts }), [cards, s.events, s.posts]);
 
   const owners: DevMessage["to"][] = ["도하", "승원"];
-  const desc: Record<string, string> = { 도하: "점수·분석 파트", 승원: "카드 생성 API 파트" };
+  const desc: Record<string, string> = { 도하: "점수/분석 파트", 승원: "카드 생성 API 파트" };
 
   return (
     <div>
@@ -62,7 +62,7 @@ export default function InsightsPage() {
                       <p className="mt-2 text-sm leading-relaxed text-gray-700">{m.suggestion}</p>
                       <ul className="mt-3 space-y-1 rounded-md bg-gray-50 p-3 text-[13px] text-gray-500">
                         {m.evidence.map((e) => (
-                          <li key={e}>· {e}</li>
+                          <li key={e}>{e}</li>
                         ))}
                       </ul>
                     </li>

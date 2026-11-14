@@ -53,14 +53,14 @@ export function ChatPanel({ accountId }: { accountId: AccountId }) {
 
   return (
     <Panel className="mb-6 p-5">
-      <SectionTitle title={`AI 스토리보드 · ${account.name}`} desc="우리 소재를 최근 탑5 바이럴 영상의 구조에 맞춰 스토리보드로 짜줘요. 추천 카드 외에 따로 더 만들고 싶을 때 쓰세요." />
+      <SectionTitle title="AI 스토리보드" desc="우리 소재를 최근 탑5 바이럴 영상의 구조에 맞춰 스토리보드로 짜줘요. 추천 카드 외에 따로 더 만들고 싶을 때 쓰세요." />
 
       <div className="mb-3 flex flex-wrap items-center gap-3">
         <label className="flex items-center gap-2 text-[13px] text-gray-600">
           소재
           <select className="h-8 rounded-md border border-gray-200 bg-white px-2 text-[13px]" value={materialId} onChange={(e) => setMaterialId(e.target.value)}>
-            <option value="">자동으로 고르기 (최근·확인된 소재 우선)</option>
-            {usable.map((m) => <option key={m.id} value={m.id}>{m.title}{m.basis === "확인 필요" ? " · 확인 필요" : ""}</option>)}
+            <option value="">자동으로 고르기 (최근/확인된 소재 우선)</option>
+            {usable.map((m) => <option key={m.id} value={m.id}>{m.title}{m.basis === "확인 필요" ? " (확인 필요)" : ""}</option>)}
           </select>
         </label>
         <div className="inline-flex rounded-md border border-gray-200 bg-white p-0.5">
@@ -116,7 +116,7 @@ function Story({ story, used, onFollow }: { story: StoryResult; used?: Used; onF
           <ol className="mt-1.5 space-y-1">
             {used.viral.map((v, i) => (
               <li key={v.id}>
-                {i + 1}. <a href={v.url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">@{v.user}</a> · 조회 {fmtN(v.plays)} · {v.sec}초 — {v.caption.slice(0, 40)}
+                {i + 1}. <a href={v.url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">@{v.user}</a>, 조회 {fmtN(v.plays)}, {v.sec}초: {v.caption.slice(0, 40)}
               </li>
             ))}
           </ol>

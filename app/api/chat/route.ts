@@ -6,7 +6,7 @@ import { loadViral, topViral } from "@/lib/viral";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-// 계정별 AI 스토리보드. 계정 ID와 (화면에서 편집한) 컨셉·소재를 받아 최근 바이럴 상위 영상 구조로 스토리보드를 만든다.
+// 계정별 AI 스토리보드. 계정 ID와 (화면에서 편집한) 컨셉/소재를 받아 최근 바이럴 상위 영상 구조로 스토리보드를 만든다.
 // ANTHROPIC_API_KEY가 없으면 규칙 기반 초안을 돌려준다.
 export async function POST(req: Request) {
   let body: Record<string, unknown>;
