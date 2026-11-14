@@ -75,6 +75,8 @@ export interface Post {
   format: string | null; // 연결된 카드의 포맷 (없으면 null)
   type: CardType | null;
   metrics: PostMetrics;
+  /** 게시 후 24시간/72시간/7일 시점의 조회수 (수집된 것만) */
+  checkpoints?: Partial<Record<"24h" | "72h" | "7d", number>>;
 }
 
 export interface PostWithScore extends Post {

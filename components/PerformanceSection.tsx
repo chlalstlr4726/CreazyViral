@@ -13,7 +13,7 @@ import { Chip, Panel, SectionTitle, TypeBadge } from "./ui";
 const PERIODS = [7, 30, 90] as const;
 
 export function PerformanceSection({ accountId }: { accountId?: string } = {}) {
-  const { posts } = useStore();
+  const { posts, postSource, lastCaptured } = useStore();
   const [accState, setAcc] = useState<string>("all");
   const acc = accountId ?? accState;
   const [period, setPeriod] = useState<(typeof PERIODS)[number]>(30);
@@ -50,6 +50,13 @@ export function PerformanceSection({ accountId }: { accountId?: string } = {}) {
       />
 
       <div className="mb-5 flex flex-wrap items-center gap-2">
+        {accountId && (
+          <span className={clsx("rounded-md px-2.5 py-1 text-[13px] font-semibold", postSource(accountId as never) === "instagram" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700")}>
+            {postSource(accountId as never) === "instagram"
+              ? `인스타 공식 API 실제 데이터${lastCaptured ? `, 마지막 수집 ${new Date(lastCaptured).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" })}` : ""}`
+              : "샘플 데이터 (계정 연결 전)"}
+          </span>
+        )}
         <div className="ml-auto inline-flex rounded-md border border-gray-200 bg-white p-0.5">
           {PERIODS.map((p) => (
             <button
@@ -206,7 +213,14 @@ export function PerformanceSection({ accountId }: { accountId?: string } = {}) {
                       <span className="text-xs text-gray-300">카드 미연결</span>
                     )}
                   </td>
-                  <td className="num py-3 text-right font-medium">{p.metrics.views.toLocaleString()}</td>
+                  <td className="num py-3 text-right font-medium">
+                    {p.metrics.views.toLocaleString()}
+                    {p.checkpoints && Object.keys(p.checkpoints).length > 0 && (
+                      <div className="text-[11px] font-normal text-gray-400">
+                        {(["24h", "72h", "7d"] as const).filter((k) => p.checkpoints![k] != null).map((k) => `${k === "24h" ? "24시간" : k === "72h" ? "72시간" : "7일"} ${p.checkpoints![k]!.toLocaleString()}`).join(" / ")}
+                      </div>
+                    )}
+                  </td>
                   <td className="py-3 text-right">
                     <span
                       className={clsx(

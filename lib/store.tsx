@@ -30,6 +30,9 @@ interface Store {
   regenerate: (type: CardType, account: AccountId) => void;
   linkPost: (id: string, url: string) => "matched" | "pending";
   posts: PostWithScore[];
+  /** 계정별 성과 데이터 출처: instagram = 공식 API로 수집한 실제 값, sample = 샘플 */
+  postSource: (account: AccountId) => "instagram" | "sample";
+  lastCaptured: string | null;
   toast: string | null;
 }
 
@@ -52,6 +55,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [toast, setToast] = useState<string | null>(null);
   const [remote, setRemote] = useState<{ source: CardSource; cards: Card[] }>({ source: "loading", cards: [] });
   const [extra, setExtra] = useState<Card[]>([]);
+  const [live, setLive] = useState<{ accounts: Record<string, { connected: boolean }>; posts: Post[]; last: string | null }>({ accounts: {}, posts: [], last: null });
 
   useEffect(() => {
     try {
@@ -69,6 +73,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         setRemote(d.source === "supabase" ? { source: "supabase", cards: d.cards ?? [] } : { source: d.source === "error" ? "error" : "sample", cards: [] }),
       )
       .catch(() => setRemote({ source: "error", cards: [] }));
+  }, []);
+
+  // 게시물 성과: 인스타 공식 API로 수집된 값(Supabase). 연결 전이거나 설정이 없으면 샘플.
+  useEffect(() => {
+    fetch("/api/posts", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d: { source?: string; accounts?: Record<string, { connected: boolean }>; posts?: Post[]; last_captured_at?: string | null }) => {
+        if (d.source === "instagram") setLive({ accounts: d.accounts ?? {}, posts: d.posts ?? [], last: d.last_captured_at ?? null });
+      })
+      .catch(() => {});
   }, []);
 
   const push = useCallback((e: Omit<CardEvent, "id" | "at">) => {
@@ -133,14 +147,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const posts = useMemo(() => {
     const linkEvents = events.filter((e) => e.action === "linked" && e.post_url);
-    const merged: Post[] = POSTS.map((p) => {
+    const base: Post[] = ACCOUNT_PROFILES.flatMap((a) => (live.accounts[a.id]?.connected ? live.posts.filter((p) => p.account_id === a.id) : POSTS.filter((p) => p.account_id === a.id)));
+    const merged: Post[] = base.map((p) => {
       const code = shortcode(p.url);
       const ev = [...linkEvents].reverse().find((e) => shortcode(e.post_url!) === code);
       const card = ev ? cardById(ev.card_id) : undefined;
       return card ? { ...p, card_id: card.card_id, format: card.format, type: card.type } : p;
     });
     return scorePosts(merged);
-  }, [events, cardById]);
+  }, [events, cardById, live]);
 
   const value: Store = {
     ready: localReady && remote.source !== "loading",
@@ -179,6 +194,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       return hit ? "matched" : "pending";
     },
     posts,
+    postSource: (account) => (live.accounts[account]?.connected ? "instagram" : "sample"),
+    lastCaptured: live.last,
     toast,
   };
 

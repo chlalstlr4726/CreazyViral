@@ -1,3 +1,6 @@
 {
-  "crons": [{ "path": "/api/cron/daily-slack", "schedule": "0 0 * * *" }]
+  "crons": [
+    { "path": "/api/cron/daily-slack", "schedule": "0 0 * * *" },
+    { "path": "/api/cron/collect-insights", "schedule": "0 18 * * *" }
+  ]
 }
