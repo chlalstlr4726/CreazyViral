@@ -30,7 +30,7 @@ export const multipleOf = (r: ViralReference): number | null => {
   return r.usual_plays && r.usual_plays > 0 ? r.plays / r.usual_plays : null;
 };
 
-const d = (daysAgo: number) => new Date(Date.UTC(2026, 10, 14, 3) - daysAgo * 86400_000).toISOString();
+const d = (daysAgo: number) => new Date(Date.now() - (daysAgo - 0.5) * 86_400_000).toISOString();
 
 // 화면 확인용 샘플(가상의 계정). 실제 데이터가 연결되면 loadReferences()만 교체하세요.
 const SAMPLE: ViralReference[] = [
