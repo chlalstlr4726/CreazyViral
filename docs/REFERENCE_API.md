@@ -1,13 +1,14 @@
 # 경쟁사 레퍼런스 데이터 명세 (대시보드 ← 앞단)
 
 대시보드는 `GET /api/references?days=3|7|14` 응답만 읽어서 그립니다.
-지금은 `lib/references.ts`의 `loadReferences()`가 샘플을 돌려줘요. 이 함수만 DB/분석 결과로 바꾸면 화면은 그대로 동작해요.
+`SUPABASE_URL`과 `SUPABASE_SECRET_KEY`를 설정하면 서버가 `competitor_reels`를 읽습니다. Supabase 설정이 없는 로컬 환경에서는 샘플을 표시합니다.
 
 ## 응답
 ```json
 { "sample": false, "days": 7, "items": [ViralReference, ...] }
 ```
 `sample`이 true면 화면에 "샘플" 안내가 떠요. 실제 데이터면 false.
+`summary`에는 평소 대비 3배 이상 영상 수(`viralReels`), 계정별 영상 수와 최고 배수(`accounts`), 서로 다른 계정 2곳 이상에서 반복된 형식(`formats`)이 함께 제공됩니다.
 
 ## ViralReference (영상 1편)
 | 필드 | 타입 | 설명 |
