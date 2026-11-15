@@ -1,4 +1,4 @@
-# 바이럴 레퍼런스 데이터 명세 (대시보드 ← 앞단)
+# 경쟁사 레퍼런스 데이터 명세 (대시보드 ← 앞단)
 
 대시보드는 `GET /api/references?days=3|7|14` 응답만 읽어서 그립니다.
 지금은 `lib/references.ts`의 `loadReferences()`가 샘플을 돌려줘요. 이 함수만 DB/분석 결과로 바꾸면 화면은 그대로 동작해요.
@@ -18,7 +18,7 @@
 | posted_at | ISO string | 올린 날짜 |
 | plays | number | 조회수 |
 | usual_plays | number or null | 그 계정 평소 조회수(최근 릴스 중앙값 등). 모르면 null |
-| multiple | number or null (선택) | 배수. 안 주면 plays / usual_plays 로 화면에서 계산 |
+| multiple | number or null (선택) | 평소 대비 배수. 안 주면 plays / usual_plays 로 화면에서 계산 |
 | followers | number or null | 팔로워 수 |
 | category | 아래 6개 중 하나 | 분류 |
 | region | "국내" or "해외" | |

@@ -61,8 +61,8 @@ export function ReferenceSection() {
   return (
     <Panel className="mb-6 p-5">
       <SectionTitle
-        title="바이럴 레퍼런스"
-        desc="최근 터진 영상을 평소 대비 배수 순으로 보여줘요. 같은 형식이 여러 계정에서 반복되는지도 함께 표시해요."
+        title="경쟁사 레퍼런스"
+        desc="경쟁사 계정의 최근 영상을 평소 대비 배수 순으로 보여줘요. 같은 형식이 여러 계정에서 반복되는지도 함께 표시해요."
         right={
           <div className="inline-flex rounded-md border border-gray-200 bg-white p-0.5">
             {PERIODS.map((p) => (
@@ -77,7 +77,7 @@ export function ReferenceSection() {
 
       {hot.length > 0 && (
         <div className="mb-4 rounded-lg border border-violet-200 bg-violet-50/50 p-3">
-          <p className="mb-1.5 text-[13px] font-bold text-violet-700">여러 계정에서 반복해서 터지는 형식</p>
+          <p className="mb-1.5 text-[13px] font-bold text-violet-700">여러 계정에서 반복되는 형식</p>
           <div className="flex flex-wrap gap-2">
             {hot.map(([k, s]) => (
               <span key={k} className="inline-flex items-center gap-1 rounded-md bg-white px-2.5 py-1 text-[13px] font-semibold text-violet-700 ring-1 ring-violet-200">
@@ -94,7 +94,7 @@ export function ReferenceSection() {
         <span className="mx-1 h-4 w-px bg-gray-200" />
         {(["전체", "국내", "해외"] as const).map((r) => <Pill key={r} active={region === r} onClick={() => setRegion(r)}>{r === "전체" ? "국내+해외" : r}</Pill>)}
         <select className="ml-auto h-8 rounded-md border border-gray-200 bg-white px-2 text-[13px]" value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
-          <option value="multiple">배수 높은 순</option>
+          <option value="multiple">평소 대비 배수 높은 순</option>
           <option value="plays">조회수 높은 순</option>
           <option value="recent">최신순</option>
         </select>
@@ -128,8 +128,8 @@ export function ReferenceSection() {
               </div>
 
               <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-1">
-                <span className="text-xl font-bold text-blue-600">{mult != null ? `${mult >= 10 ? Math.round(mult) : mult.toFixed(1)}배` : "배수 -"}</span>
-                <span className="text-[13px] text-gray-600">조회수 <b>{compact(r.plays)}</b>, 평소 {r.usual_plays != null ? compact(r.usual_plays) : "-"}</span>
+                <span className="text-xl font-bold text-blue-600">{mult != null ? `평소 대비 ${mult >= 10 ? Math.round(mult) : mult.toFixed(1)}배` : "평소 대비 배수 -"}</span>
+                <span className="text-[13px] text-gray-600">조회수 <b>{compact(r.plays)}</b>, 평소 조회수 {r.usual_plays != null ? compact(r.usual_plays) : "-"}</span>
               </div>
 
               <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm md:grid-cols-[84px_1fr]">
