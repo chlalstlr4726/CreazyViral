@@ -6,6 +6,8 @@ export interface ViralReel {
   at: string; sec: number; music: string; kw: string;
   // DB(reels)에서 올 때만 채워지는 분석값
   followers?: number; reach_x?: number; reason?: string; paid?: boolean | null;
+  // daily_recs(매일 승인 추천)에서 올 때만 채워지는 값
+  rank?: number; recDate?: string; multiple?: number | null; caution?: string | null; aiMade?: "예" | "아니오" | "모름" | null; hook?: string;
 }
 
 export const VIRAL_SEED: ViralReel[] = [
