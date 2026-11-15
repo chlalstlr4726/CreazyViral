@@ -59,8 +59,8 @@ export function ChatPanel({ accountId }: { accountId: AccountId }) {
         <label className="flex items-center gap-2 text-[13px] text-gray-600">
           소재
           <select className="h-8 rounded-md border border-gray-200 bg-white px-2 text-[13px]" value={materialId} onChange={(e) => setMaterialId(e.target.value)}>
-            <option value="">자동으로 고르기 (최근/확인된 소재 우선)</option>
-            {usable.map((m) => <option key={m.id} value={m.id}>{m.title}{m.basis === "확인 필요" ? " (확인 필요)" : ""}</option>)}
+            <option value="">자동으로 고르기 (최근 소재 우선)</option>
+            {usable.map((m) => <option key={m.id} value={m.id}>{m.title}</option>)}
           </select>
         </label>
         <div className="inline-flex rounded-md border border-gray-200 bg-white p-0.5">

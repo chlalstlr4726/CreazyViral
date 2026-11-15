@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Pencil, Plus, RotateCcw, Trash2, Check, X } from "lucide-react";
 import clsx from "clsx";
-import { ACCOUNT_BY_ID, type AccountId, type Concept, type Material, type MaterialBasis, type MaterialStatus } from "@/lib/accounts";
+import { ACCOUNT_BY_ID, type AccountId, type Concept, type Material, type MaterialStatus } from "@/lib/accounts";
 import { useProfiles } from "@/lib/profiles";
 import { Button, Chip, Panel, SectionTitle } from "./ui";
 
@@ -16,10 +16,9 @@ const FIELDS: { key: keyof Concept; label: string; rows: number }[] = [
   { key: "rules", label: "지킬 표기/금지 사항", rows: 3 },
 ];
 const STATUSES: MaterialStatus[] = ["아이디어", "예정", "게시함", "보관"];
-const BASES: MaterialBasis[] = ["", "확인된 사실", "확인 필요"];
 const statusTone = { 아이디어: "gray", 예정: "blue", 게시함: "green", 보관: "amber" } as const;
 
-const blank = (): Material => ({ id: "", title: "", basis: "", memo: "", status: "아이디어", updated_at: "" });
+const blank = (): Material => ({ id: "", title: "", memo: "", status: "아이디어", updated_at: "" });
 const field = "w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
 
 export function ProfilePanel({ accountId }: { accountId: AccountId }) {
@@ -78,13 +77,10 @@ export function ProfilePanel({ accountId }: { accountId: AccountId }) {
 
       {editing && (
         <div className="mb-3 rounded-lg border border-blue-200 bg-blue-50/40 p-4">
-          <div className="grid gap-3 md:grid-cols-[1fr_160px_160px]">
+          <div className="grid gap-3 md:grid-cols-[1fr_160px]">
             <input autoFocus className={field} placeholder="소재 이름 (예: 채팅으로 고치기)" value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
             <select className={field} value={editing.status} onChange={(e) => setEditing({ ...editing, status: e.target.value as MaterialStatus })}>
               {STATUSES.map((s) => <option key={s}>{s}</option>)}
-            </select>
-            <select className={field} value={editing.basis} onChange={(e) => setEditing({ ...editing, basis: e.target.value as MaterialBasis })}>
-              {BASES.map((b) => <option key={b} value={b}>{b || "근거 미표시"}</option>)}
             </select>
           </div>
           <textarea className={clsx(field, "mt-3")} rows={3} placeholder="메모 — 후킹 후보, 표기 규칙, 주의할 점" value={editing.memo} onChange={(e) => setEditing({ ...editing, memo: e.target.value })} />
@@ -103,7 +99,6 @@ export function ProfilePanel({ accountId }: { accountId: AccountId }) {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm font-semibold">{m.title}</span>
                 <Chip tone={statusTone[m.status]}>{m.status}</Chip>
-                {m.basis && <Chip tone={m.basis === "확인 필요" ? "red" : "green"}>{m.basis}</Chip>}
               </div>
               {m.memo && <p className="mt-1 whitespace-pre-line text-[13px] leading-relaxed text-gray-500">{m.memo}</p>}
             </div>

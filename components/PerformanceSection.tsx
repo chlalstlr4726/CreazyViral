@@ -177,12 +177,12 @@ export function PerformanceSection({ accountId }: { accountId?: string } = {}) {
             <tr className="border-y border-gray-100 bg-gray-50 text-left text-xs text-gray-500">
               <th className="px-6 py-2.5 font-medium">게시물</th>
               <th className="py-2.5 font-medium">포맷</th>
-              <th className="py-2.5 text-right font-medium">조회수</th>
-              <th className="py-2.5 text-right font-medium">성과</th>
-              <th className="py-2.5 text-right font-medium">좋아요</th>
-              <th className="py-2.5 text-right font-medium">댓글</th>
-              <th className="py-2.5 text-right font-medium">공유</th>
-              <th className="px-6 py-2.5 text-right font-medium">저장</th>
+              <th className="w-28 py-2.5 text-right font-medium">조회수</th>
+              <th className="w-20 py-2.5 text-right font-medium">성과</th>
+              <th className="w-20 py-2.5 text-right font-medium">좋아요</th>
+              <th className="w-20 py-2.5 text-right font-medium">댓글</th>
+              <th className="w-20 py-2.5 text-right font-medium">공유</th>
+              <th className="w-20 py-2.5 pl-0 pr-6 text-right font-medium box-content">저장</th>
             </tr>
           </thead>
           <tbody>
@@ -234,7 +234,7 @@ export function PerformanceSection({ accountId }: { accountId?: string } = {}) {
                   <td className="num py-3 text-right text-gray-600">{p.metrics.likes.toLocaleString()}</td>
                   <td className="num py-3 text-right text-gray-600">{p.metrics.comments.toLocaleString()}</td>
                   <td className="num py-3 text-right text-gray-600">{p.metrics.shares.toLocaleString()}</td>
-                  <td className="num px-6 py-3 text-right text-gray-600">{p.metrics.saves.toLocaleString()}</td>
+                  <td className="num py-3 pl-0 pr-6 text-right text-gray-600">{p.metrics.saves.toLocaleString()}</td>
                 </tr>
               );
             })}
