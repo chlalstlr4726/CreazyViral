@@ -38,7 +38,7 @@ export function ViralTop5({ days, onDays }: { days: Days; onDays: (d: Days) => v
   return (
     <Panel className="mb-6 p-5">
       <SectionTitle
-        title={source === "daily_recs" ? "오늘의 추천 Top 5" : "최근 바이럴 Top 5"}
+        title={source === "daily_recs" ? `최신 승인 추천 Top 5${recDate ? ` (${recDate} 추천)` : ""}` : "최근 바이럴 Top 5"}
         right={source === "daily_recs" ? undefined : (
           <div className="inline-flex rounded-md border border-gray-200 bg-white p-0.5">
             {PERIODS.map((p) => (
