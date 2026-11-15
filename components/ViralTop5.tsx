@@ -37,7 +37,6 @@ export function ViralTop5({ days, onDays }: { days: Days; onDays: (d: Days) => v
     <Panel className="mb-6 p-5">
       <SectionTitle
         title="최근 바이럴 Top 5"
-        desc={`수집해서 분석한 영상 중 최근 ${days}일 동안 조회수가 가장 높은 5개예요. 아래 AI 스토리보드도 이 영상들을 기준으로 만들어요.`}
         right={
           <div className="inline-flex rounded-md border border-gray-200 bg-white p-0.5">
             {PERIODS.map((p) => (
@@ -48,6 +47,10 @@ export function ViralTop5({ days, onDays }: { days: Days; onDays: (d: Days) => v
           </div>
         }
       />
+      <div className="mb-3 text-[12px] leading-relaxed text-gray-400">
+        <div className="font-semibold text-gray-500">Top 5 기준</div>
+        <div>* Supabase reels 데이터에서 가져옵니다. 분석 결과가 "터짐"인 영상 중 최근 3, 7, 14일 조회수 상위 5개를 가져옵니다. 아래 AI 스토리보드도 이 영상들을 기준으로 만들고 있습니다.</div>
+      </div>
       {items && source === "sample" && <p className="mb-3 rounded-md bg-amber-50 px-3 py-2 text-[13px] text-amber-700">수집 DB에 연결되지 않아 코드에 들어 있는 수집 샘플로 보여주고 있어요.</p>}
       {failed && <p className="p-6 text-center text-sm text-red-500">영상 목록을 불러오지 못했어요.</p>}
       {!failed && items === null && <p className="p-6 text-center text-sm text-gray-400">불러오는 중…</p>}
