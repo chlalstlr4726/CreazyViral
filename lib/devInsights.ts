@@ -138,11 +138,14 @@ export function buildDevMessages(args: { cards: Card[]; events: CardEvent[]; pos
   return out.sort((a, b) => (a.priority === b.priority ? 0 : a.priority === "높음" ? -1 : 1));
 }
 
+/** 화면과 복사 메시지에 쓰는 파트 이름 (내부 키는 담당자 이름 그대로) */
+export const PART_LABEL: Record<DevMessage["to"], string> = { 도하: "점수 분석 파트", 승원: "카드 생성 API 파트" };
+
 export function toPlainText(msgs: DevMessage[], to: DevMessage["to"]) {
   const list = msgs.filter((m) => m.to === to);
   if (!list.length) return "";
   return [
-    `${to}님, 대시보드에 쌓인 피드백 기준 제안이에요.`,
+    `[${PART_LABEL[to]}] 대시보드에 쌓인 피드백 기준 제안입니다.`,
     "",
     ...list.map((m, i) => `${i + 1}. [${m.priority}] ${m.title}\n   - 제안: ${m.suggestion}\n   - 근거: ${m.evidence.join(" / ")}`),
   ].join("\n");

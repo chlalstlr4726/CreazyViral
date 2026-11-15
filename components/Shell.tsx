@@ -11,7 +11,7 @@ const NAV = [
   { href: "/", label: "홈", icon: Home },
   { href: "/competitors", label: "경쟁사", icon: Binoculars },
   { href: "/history", label: "히스토리", icon: History },
-  { href: "/insights", label: "개발자 제언", icon: MessageSquareText },
+  { href: "/insights", label: "(개발자용) 최적화 제언", icon: MessageSquareText },
   { href: "/accounts", label: "계정 연결", icon: Link2 },
 ];
 

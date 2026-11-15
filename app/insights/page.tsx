@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { HISTORY_CARDS } from "@/lib/mock";
-import { buildDevMessages, toPlainText, type DevMessage } from "@/lib/devInsights";
+import { buildDevMessages, toPlainText, PART_LABEL, type DevMessage } from "@/lib/devInsights";
 import { Button, Chip, Panel } from "@/components/ui";
 import type { Card } from "@/lib/types";
 
@@ -16,11 +16,10 @@ export default function InsightsPage() {
   const msgs = useMemo(() => buildDevMessages({ cards, events: s.events, posts: s.posts }), [cards, s.events, s.posts]);
 
   const owners: DevMessage["to"][] = ["도하", "승원"];
-  const desc: Record<string, string> = { 도하: "점수/분석 파트", 승원: "카드 생성 API 파트" };
 
   return (
     <div>
-      <h1 className="text-3xl font-bold tracking-tight">개발자 제언</h1>
+      <h1 className="text-3xl font-bold tracking-tight">(개발자용) 최적화 제언</h1>
       <p className="mt-1.5 mb-8 text-gray-500">
         팀이 고른 카드, 패스 사유, 실제 성과를 바탕으로 점수 로직과 카드 생성 프롬프트를 어떻게 고치면 좋을지 자동으로 정리해요. 표본이 충분할 때만 제안이 나와요.
       </p>
@@ -32,8 +31,7 @@ export default function InsightsPage() {
             <Panel key={o} className="p-6">
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-bold">{o}에게</h2>
-                  <p className="text-[13px] text-gray-500">{desc[o]}</p>
+                  <h2 className="text-lg font-bold">{PART_LABEL[o]}</h2>
                 </div>
                 <Button
                   variant="secondary"
