@@ -1,8 +1,9 @@
 import { VIRAL_SEED, type ViralReel } from "./viralSeed";
 import { sb, sbConfigured } from "./sb";
+import { readLatestDailyRecs } from "./dailyRecs";
 
 export type { ViralReel };
-export type ViralSource = "supabase" | "sample";
+export type ViralSource = "daily_recs" | "supabase" | "sample";
 
 type Row = Record<string, unknown>;
 const num = (v: unknown) => Number(v ?? 0) || 0;
@@ -60,4 +61,22 @@ export function topViral(rows: ViralReel[], days: number, limit = 5): ViralReel[
     .filter((r) => +new Date(r.at) >= cutoff)
     .sort((a, b) => b.plays - a.plays)
     .slice(0, limit);
+}
+
+/**
+ * 홈 Top 5와 AI 스토리보드가 쓰는 목록.
+ * 1순위: `daily_recs`(도하가 매일 승인한 추천)의 가장 최근 추천일 상위 limit편(rank 순). 이때 days는 쓰지 않는다.
+ * 2순위: 표가 비었거나 읽기에 실패하면 예전처럼 `reels` '터짐' 최근 days일 조회수 순(없으면 샘플).
+ */
+export async function loadHomeTop(days: number, limit = 5): Promise<{ items: ViralReel[]; source: ViralSource; recDate?: string }> {
+  if (sbConfigured()) {
+    try {
+      const recs = await readLatestDailyRecs(limit);
+      if (recs.length) return { items: recs, source: "daily_recs", recDate: recs[0].recDate };
+    } catch {
+      // daily_recs가 없거나 읽기 실패 → 아래 예전 방식으로
+    }
+  }
+  const { rows, source } = await loadViral();
+  return { items: topViral(rows, days, limit), source };
 }

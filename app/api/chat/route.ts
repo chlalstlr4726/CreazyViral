@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { ACCOUNT_BY_ID, type AccountId } from "@/lib/accounts";
 import { buildSystem, buildUser, parseStory, pickMaterial, sanitizeConcept, sanitizeMaterials, templateStory } from "@/lib/chat";
-import { loadViral, topViral } from "@/lib/viral";
+import { loadHomeTop } from "@/lib/viral";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   const concept = sanitizeConcept(body.concept as never, account.concept);
   const materials = sanitizeMaterials(body.materials, account.materials);
   const focus = pickMaterial(materials, typeof body.materialId === "string" ? body.materialId : undefined);
-  const viral = topViral((await loadViral()).rows, days, 5);
+  const viral = (await loadHomeTop(days, 5)).items;
 
   const key = process.env.ANTHROPIC_API_KEY;
   const used = { viral, material: focus ? { id: focus.id, title: focus.title } : null, days };
