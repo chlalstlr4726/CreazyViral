@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Send, Sparkles } from "lucide-react";
-import clsx from "clsx";
 import { ACCOUNT_BY_ID, type AccountId } from "@/lib/accounts";
 import type { StoryResult } from "@/lib/chat";
 import type { ViralReel } from "@/lib/viral";
@@ -16,11 +15,10 @@ const DEFAULT_MSG = "최근 우리 소재로, 최근 며칠간 탑5 바이럴 �
 const fmtN = (n: number) => (n >= 10000 ? `${(n / 10000).toFixed(n >= 100000 ? 0 : 1)}만` : n.toLocaleString());
 const sec = (n: number) => `${n}s`;
 
-export function ChatPanel({ accountId }: { accountId: AccountId }) {
+export function ChatPanel({ accountId, days }: { accountId: AccountId; days: 3 | 7 | 14 }) {
   const account = ACCOUNT_BY_ID[accountId];
   const { profile } = useProfiles();
   const { concept, materials } = profile(accountId);
-  const [days, setDays] = useState<3 | 7 | 14>(3);
   const [materialId, setMaterialId] = useState("");
   const [input, setInput] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -53,7 +51,7 @@ export function ChatPanel({ accountId }: { accountId: AccountId }) {
 
   return (
     <Panel className="mb-6 p-5">
-      <SectionTitle title="AI 스토리보드" desc="우리 소재를 최근 탑5 바이럴 영상의 구조에 맞춰 스토리보드로 짜줘요. 추천 카드 외에 따로 더 만들고 싶을 때 쓰세요." />
+      <SectionTitle title="AI 스토리보드" desc="우리 소재를 위 바이럴 Top 5 영상의 구조에 맞춰 스토리보드로 짜줘요. 추천 카드 외에 따로 더 만들고 싶을 때 쓰세요." />
 
       <div className="mb-3 flex flex-wrap items-center gap-3">
         <label className="flex items-center gap-2 text-[13px] text-gray-600">
@@ -63,13 +61,7 @@ export function ChatPanel({ accountId }: { accountId: AccountId }) {
             {usable.map((m) => <option key={m.id} value={m.id}>{m.title}</option>)}
           </select>
         </label>
-        <div className="inline-flex rounded-md border border-gray-200 bg-white p-0.5">
-          {([3, 7, 14] as const).map((p) => (
-            <button key={p} onClick={() => setDays(p)} className={clsx("rounded px-3 py-1 text-[13px] font-semibold", days === p ? "bg-blue-500 text-white" : "text-gray-500 hover:text-gray-900")}>
-              최근 {p}일
-            </button>
-          ))}
-        </div>
+        <span className="text-[13px] text-gray-500">기준: 위의 최근 {days}일 바이럴 Top 5</span>
       </div>
 
       <div className="space-y-4">

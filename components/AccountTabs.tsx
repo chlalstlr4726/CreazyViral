@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { ACCOUNT_PROFILES, type AccountId } from "@/lib/accounts";
 import { TodaySection } from "./TodaySection";
 import { ChatPanel } from "./ChatPanel";
+import { ViralTop5, type Days } from "./ViralTop5";
 import { ProfilePanel } from "./ProfilePanel";
 import { PerformanceSection } from "./PerformanceSection";
 
@@ -12,6 +13,7 @@ const KEY = "viral-dashboard:tab";
 
 export function AccountTabs() {
   const [tab, setTab] = useState<AccountId>("moodiee");
+  const [days, setDays] = useState<Days>(7);
 
   useEffect(() => {
     const q = new URLSearchParams(location.search).get("a") as AccountId | null;
@@ -51,7 +53,8 @@ export function AccountTabs() {
 
       <div key={tab}>
         <TodaySection accountId={tab} />
-        <ChatPanel accountId={tab} />
+        <ViralTop5 days={days} onDays={setDays} />
+        <ChatPanel accountId={tab} days={days} />
         <ProfilePanel accountId={tab} />
         <PerformanceSection accountId={tab} />
       </div>

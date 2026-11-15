@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   const concept = sanitizeConcept(body.concept as never, account.concept);
   const materials = sanitizeMaterials(body.materials, account.materials);
   const focus = pickMaterial(materials, typeof body.materialId === "string" ? body.materialId : undefined);
-  const viral = topViral(await loadViral(), days, 5);
+  const viral = topViral((await loadViral()).rows, days, 5);
 
   const key = process.env.ANTHROPIC_API_KEY;
   const used = { viral, material: focus ? { id: focus.id, title: focus.title } : null, days };

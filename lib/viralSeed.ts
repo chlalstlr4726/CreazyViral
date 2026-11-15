@@ -4,6 +4,8 @@ export interface ViralReel {
   id: string; url: string; user: string; caption: string;
   plays: number; likes: number; comments: number; shares: number;
   at: string; sec: number; music: string; kw: string;
+  // DB(reels)에서 올 때만 채워지는 분석값
+  followers?: number; reach_x?: number; reason?: string; paid?: boolean | null;
 }
 
 export const VIRAL_SEED: ViralReel[] = [

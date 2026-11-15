@@ -8,6 +8,6 @@ export async function GET(req: Request) {
   const u = new URL(req.url);
   const days = Math.min(30, Math.max(1, Number(u.searchParams.get("days")) || 3));
   const limit = Math.min(20, Math.max(1, Number(u.searchParams.get("limit")) || 5));
-  const rows = await loadViral();
-  return NextResponse.json({ days, items: topViral(rows, days, limit) });
+  const { rows, source } = await loadViral();
+  return NextResponse.json({ days, source, items: topViral(rows, days, limit) });
 }
