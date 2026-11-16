@@ -13,8 +13,17 @@ async function ig<T>(path: string, token: string, params: Record<string, string>
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   url.searchParams.set("access_token", token);
   const res = await fetch(url, { cache: "no-store", redirect: "error", signal: AbortSignal.timeout(15000) });
-  if (!res.ok) throw new Error(`instagram_http_${res.status}`); // 응답 본문/URL(토큰 포함)은 남기지 않는다
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.error?.code === 190 || res.status === 401 ? "instagram_invalid_token" : `instagram_http_${res.status}`);
+  }
   return (await res.json()) as T;
+}
+
+export function instagramIdentity(token: string) {
+  return ig<{ username?: string; user_id?: string; id?: string; followers_count?: number }>("/me", token, {
+    fields: "user_id,username,followers_count",
+  });
 }
 
 export interface AccountResult {
@@ -31,7 +40,7 @@ const envToken = (id: AccountId) => process.env[`IG_TOKEN_${id.toUpperCase()}`]?
 
 /** 토큰이 곧 만료되면 갱신해서 DB에 저장 (갱신은 앱 시크릿 없이 가능, 발급 24시간 뒤부터) */
 async function ensureToken(handle: string, id: AccountId): Promise<{ token: string; expires_at: string | null } | null> {
-  const rows = await sb<Row[]>("ig_tokens", { params: { handle: `eq.${handle}`, select: "token,expires_at" } });
+  const rows = await sb<Row[]>("ig_tokens", { params: { handle: `eq.${handle}`, select: "token,expires_at,updated_at" } });
   let token = (rows[0]?.token as string | undefined) || envToken(id);
   let expires = (rows[0]?.expires_at as string | null | undefined) ?? null;
   if (!token) return null;
@@ -40,9 +49,16 @@ async function ensureToken(handle: string, id: AccountId): Promise<{ token: stri
   if (soon) {
     try {
       const r = await ig<{ access_token: string; expires_in: number }>("https://graph.instagram.com/refresh_access_token", token, { grant_type: "ig_refresh_token" });
+      if (!r.access_token || !Number.isFinite(r.expires_in) || r.expires_in <= 0) throw new Error("invalid_refresh");
+      const newExpiry = new Date(Date.now() + r.expires_in * 1000).toISOString();
+      const body = { handle, token: r.access_token, expires_at: newExpiry, updated_at: new Date().toISOString() };
+      if (rows[0]) {
+        await sb("ig_tokens", { method: "PATCH", params: { handle: `eq.${handle}`, updated_at: `eq.${rows[0].updated_at}` }, prefer: "return=minimal", body });
+      } else {
+        await sb("ig_tokens", { method: "POST", params: { on_conflict: "handle" }, prefer: "resolution=ignore-duplicates,return=minimal", body });
+      }
       token = r.access_token;
-      expires = new Date(Date.now() + r.expires_in * 1000).toISOString();
-      await sb("ig_tokens", { method: "POST", params: { on_conflict: "handle" }, prefer: "resolution=merge-duplicates,return=minimal", body: { handle, token, expires_at: expires, updated_at: new Date().toISOString() } });
+      expires = newExpiry;
     } catch {
       // 발급 24시간 이내 등으로 갱신이 안 되면 기존 토큰으로 계속 진행
     }
@@ -85,7 +101,8 @@ async function collectOne(id: AccountId, handle: string): Promise<AccountResult>
   if (!t) return { ...base, ok: false, error: "no_token" };
 
   try {
-    const me = await ig<{ user_id?: string; id?: string; followers_count?: number }>("/me", t.token, { fields: "user_id,username,followers_count" });
+    const me = await instagramIdentity(t.token);
+    if (me.username?.toLowerCase() !== handle.toLowerCase()) throw new Error("instagram_account_mismatch");
     await sb("ig_accounts", {
       method: "PATCH",
       params: { id: `eq.${acct.id}` },
@@ -139,13 +156,19 @@ async function collectOne(id: AccountId, handle: string): Promise<AccountResult>
     }
     return { ...base, ok: true, posts: reels.length, snapshots, token_expires_at: t.expires_at };
   } catch (e) {
-    await sb("ig_accounts", { method: "PATCH", params: { id: `eq.${acct.id}` }, prefer: "return=minimal", body: { status: "expired" } }).catch(() => {});
+    if (e instanceof Error && e.message === "instagram_invalid_token") {
+      await sb("ig_accounts", { method: "PATCH", params: { id: `eq.${acct.id}` }, prefer: "return=minimal", body: { status: "expired", token_expires_at: t.expires_at } }).catch(() => {});
+    }
     return { ...base, ok: false, error: e instanceof Error ? e.message : "failed" };
   }
 }
 
 export async function collectAll(): Promise<AccountResult[]> {
-  const out: AccountResult[] = [];
-  for (const a of ACCOUNT_PROFILES) out.push(await collectOne(a.id, a.handle));
-  return out;
+  return Promise.all(ACCOUNT_PROFILES.map(async (a) => {
+    try {
+      return await collectOne(a.id, a.handle);
+    } catch (error) {
+      return { account: a.id, handle: a.handle, ok: false, error: error instanceof Error ? error.message : "collection_failed" };
+    }
+  }));
 }
