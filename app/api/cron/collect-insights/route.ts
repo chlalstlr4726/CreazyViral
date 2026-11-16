@@ -4,7 +4,7 @@ import { collectAll } from "@/lib/instagram";
 import { sbConfigured } from "@/lib/sb";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 function authorized(req: Request) {
   const secret = process.env.CRON_SECRET;
