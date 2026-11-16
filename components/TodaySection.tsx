@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Lightbulb } from "lucide-react";
+import { ChevronDown, Lightbulb } from "lucide-react";
 import type { CardType } from "@/lib/types";
 import { ACCOUNT_BY_ID, type AccountId } from "@/lib/accounts";
 import { useStore } from "@/lib/store";
@@ -45,7 +45,7 @@ export function TodaySection({ accountId }: { accountId: AccountId }) {
     <div>
       <SectionTitle
         title="오늘 만들 콘텐츠"
-        desc={`${koDate(TODAY)}. 최근 반응이 컸던 포맷을 @${account.handle} 컨셉에 맞게 바꿔 놓았어요. 하나를 골라 바로 찍어보세요.`}
+        desc={`${koDate(TODAY)} · @${account.handle} 맞춤 추천`}
         right={
           <div className="flex items-center gap-3">
             {sendMsg && <span className="text-sm text-gray-500">{sendMsg}</span>}
@@ -59,22 +59,27 @@ export function TodaySection({ accountId }: { accountId: AccountId }) {
       <div className="mb-6 overflow-hidden rounded-xl bg-gradient-to-br from-[#171b45] to-[#2b3282] p-6 text-white shadow-sm">
         <div className="flex items-center gap-2 text-sm font-semibold text-blue-200">
           <Lightbulb size={16} /> 오늘의 방향성 제언
-          <span className="ml-auto flex items-center gap-2">
+        </div>
+        <p className="mt-3 text-xl font-bold leading-snug">{direction.headline}</p>
+        <details className="group mt-3">
+          <summary className="flex w-fit cursor-pointer list-none items-center gap-1.5 rounded text-sm font-medium text-blue-100 focus-visible:outline-2 focus-visible:outline-offset-4">
+            추천 근거 <ChevronDown size={15} aria-hidden="true" className="group-open:rotate-180" />
+          </summary>
+          <div className="mt-4">
             <Chip tone={direction.confidence === "높음" ? "green" : direction.confidence === "보통" ? "amber" : "gray"}>
               근거 신뢰도 {direction.confidence}
             </Chip>
-          </span>
-        </div>
-        <p className="mt-3 text-xl font-bold leading-snug">{direction.headline}</p>
-        <ul className="mt-4 space-y-1.5 text-sm text-blue-100/90">
-          {direction.evidence.map((e) => (
-            <li key={e} className="flex gap-2">
-              <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-blue-300" />
-              {e}
-            </li>
-          ))}
-        </ul>
-        {direction.caveat && <p className="mt-3 text-xs text-blue-200/70">※ {direction.caveat}</p>}
+          </div>
+          <ul className="mt-3 space-y-1.5 text-sm text-blue-100/90">
+            {direction.evidence.map((e) => (
+              <li key={e} className="flex gap-2">
+                <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-blue-300" />
+                {e}
+              </li>
+            ))}
+          </ul>
+          {direction.caveat && <p className="mt-3 text-xs text-blue-200/70">※ {direction.caveat}</p>}
+        </details>
       </div>
 
       <div className="today-cards">
