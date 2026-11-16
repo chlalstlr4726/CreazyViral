@@ -1,5 +1,6 @@
 "use client";
 
+import { ReadableText } from "./ReadableText";
 import { useEffect, useMemo, useState } from "react";
 import { ExternalLink, Repeat } from "lucide-react";
 import clsx from "clsx";
@@ -64,7 +65,7 @@ export function ReferenceSection() {
   const hot = summary?.formats ?? [];
 
   return (
-    <Panel className="mb-6 p-5">
+    <Panel className="dashboard-copy mb-6 p-3 sm:p-5">
       <SectionTitle
         title="경쟁사 레퍼런스"
         desc="경쟁사 계정의 최근 영상을 평소 대비 배수 순으로 보여줘요. 같은 형식이 여러 계정에서 반복되는지도 함께 표시해요."
@@ -106,7 +107,7 @@ export function ReferenceSection() {
         </div>
       )}
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      <div className="competitor-filters mb-4 flex flex-wrap items-center gap-2">
         <Pill active={cat === "전체"} onClick={() => setCat("전체")}>전체 분류</Pill>
         {CATEGORIES.map((c) => <Pill key={c} active={cat === c} onClick={() => setCat(c)}>{c}</Pill>)}
         <span className="mx-1 h-4 w-px bg-gray-200" />
@@ -122,39 +123,37 @@ export function ReferenceSection() {
       {!failed && items === null && <p className="p-6 text-center text-sm text-gray-400">불러오는 중…</p>}
       {items && shown.length === 0 && <p className="p-6 text-center text-sm text-gray-400">조건에 맞는 영상이 없어요.</p>}
 
-      <div className="space-y-3">
+      <div className="competitor-list">
         {shown.map((r) => {
           const mult = multipleOf(r);
           const n = r.format_key && (mult ?? 0) >= 3 ? repeats.get(r.format_key.trim()) ?? 0 : 0;
           return (
-            <article key={r.id} className="rounded-xl border border-gray-200 p-4">
-              <div className="flex flex-wrap items-center gap-2">
+            <article key={r.id} className="competitor-card">
+              <div className="competitor-account flex flex-wrap items-baseline gap-x-5 gap-y-1">
+                <span className="text-sm font-bold">@{r.username}</span>
+                <span className="text-[13px] text-gray-500">팔로워 {r.followers != null ? compact(r.followers) : "-"}</span>
+                <span className="text-[13px] text-gray-500">{fmtDate(r.posted_at)} 게시, {r.duration_s}초</span>
+              </div>
+              <div className="competitor-metrics">
+                <span className="text-xl font-bold text-blue-600">{mult != null ? `평소 대비 ${mult >= 10 ? Math.round(mult) : mult.toFixed(1)}배` : "평소 대비 배수 -"}</span>
+                <span className="text-[13px] text-gray-600">조회수 <b>{compact(r.plays)}</b>, 평소 조회수 {r.usual_plays != null ? compact(r.usual_plays) : "-"}</span>
+              </div>
+              <div className="competitor-tags flex flex-wrap items-center gap-2">
                 <Chip tone="blue">{r.category}</Chip>
                 <Chip>{r.region}</Chip>
                 {r.is_ad === true && <Chip tone="amber">광고</Chip>}
                 {r.is_ad === null && <Chip>광고 여부 미확인</Chip>}
                 {n >= 2 && <Chip tone="green">같은 형식 {n}개 계정에서 반복</Chip>}
-                <a href={r.url} target="_blank" rel="noreferrer" className="ml-auto inline-flex items-center gap-1 text-[13px] font-semibold text-blue-600 hover:underline">
+                <a href={r.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[13px] font-semibold text-blue-600 hover:underline">
                   영상 보기 <ExternalLink size={13} />
                 </a>
               </div>
 
-              <div className="mt-2 flex flex-wrap items-baseline gap-x-5 gap-y-1">
-                <span className="text-sm font-bold">@{r.username}</span>
-                <span className="text-[13px] text-gray-500">팔로워 {r.followers != null ? compact(r.followers) : "-"}</span>
-                <span className="text-[13px] text-gray-500">{fmtDate(r.posted_at)} 게시, {r.duration_s}초</span>
-              </div>
-
-              <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-1">
-                <span className="text-xl font-bold text-blue-600">{mult != null ? `평소 대비 ${mult >= 10 ? Math.round(mult) : mult.toFixed(1)}배` : "평소 대비 배수 -"}</span>
-                <span className="text-[13px] text-gray-600">조회수 <b>{compact(r.plays)}</b>, 평소 조회수 {r.usual_plays != null ? compact(r.usual_plays) : "-"}</span>
-              </div>
-
-              <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm md:grid-cols-[84px_1fr]">
-                <dt className="text-[13px] font-semibold text-gray-500">첫 3초</dt><dd className="font-medium">{r.hook_3s || "-"}</dd>
-                <dt className="text-[13px] font-semibold text-gray-500">내용 전개</dt><dd>{r.flow || "-"}</dd>
-                <dt className="text-[13px] font-semibold text-gray-500">CTA</dt><dd>{r.cta || "없음"}</dd>
-                <dt className="text-[13px] font-semibold text-gray-500">추천 이유</dt><dd className="text-gray-700">{r.reason || "-"}</dd>
+              <dl className="competitor-analysis">
+                <div className="competitor-detail"><dt className="text-[13px] font-semibold text-gray-500">첫 3초</dt><dd className="font-medium"><ReadableText text={r.hook_3s || "-"} /></dd></div>
+                <div className="competitor-detail"><dt className="text-[13px] font-semibold text-gray-500">내용 전개</dt><dd><ReadableText text={r.flow || "-"} /></dd></div>
+                <div className="competitor-detail"><dt className="text-[13px] font-semibold text-gray-500">CTA</dt><dd><ReadableText text={r.cta || "없음"} /></dd></div>
+                <div className="competitor-detail"><dt className="text-[13px] font-semibold text-gray-500">추천 이유</dt><dd className="text-gray-700"><ReadableText text={r.reason || "-"} /></dd></div>
               </dl>
             </article>
           );

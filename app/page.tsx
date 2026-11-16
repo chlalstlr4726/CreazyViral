@@ -17,8 +17,8 @@ function HomeTabs() {
   const params = useSearchParams();
   const selected = tabs.find(({ key }) => key === params.get("tab"))?.key ?? "today";
   return (
-    <>
-      <nav aria-label="홈 메뉴" className="mb-6 flex flex-wrap gap-2 border-b border-gray-200 pb-2">
+    <div className="dashboard-copy">
+      <nav aria-label="홈 메뉴" className="dashboard-tabs mb-6 flex flex-wrap gap-2 border-b border-gray-200 pb-2">
         {tabs.map(({ key, label }) => {
           const query = new URLSearchParams(params.toString());
           if (key === "today") query.delete("tab");
@@ -36,7 +36,7 @@ function HomeTabs() {
         </section>
       )}
       {selected === "series" && <SeriesDashboard />}
-    </>
+    </div>
   );
 }
 

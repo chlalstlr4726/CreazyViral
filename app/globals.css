@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./dashboard-readability.css";
 
 @theme {
   --font-sans: "Pretendard", -apple-system, "system-ui", system-ui, Roboto, "Helvetica Neue", "Segoe UI",

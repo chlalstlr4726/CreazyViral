@@ -77,7 +77,7 @@ export function TodaySection({ accountId }: { accountId: AccountId }) {
         {direction.caveat && <p className="mt-3 text-xs text-blue-200/70">※ {direction.caveat}</p>}
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="today-cards">
         {types.map((t) => {
           const card = s.todayCard(t, accountId);
           if (!card) return <EmptyCard key={t} type={t} />;

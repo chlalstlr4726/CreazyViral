@@ -1,5 +1,6 @@
 "use client";
 
+import { ReadableText } from "./ReadableText";
 import { useEffect, useState } from "react";
 import { ExternalLink } from "lucide-react";
 import clsx from "clsx";
@@ -85,9 +86,9 @@ export function ViralTop5({ days, onDays }: { days: Days; onDays: (d: Days) => v
                 <span className="text-[13px] text-gray-500">좋아요 {compact(v.likes)}, 댓글 {compact(v.comments)}, 공유 {compact(v.shares)}</span>
               </div>
               {v.reason ? (
-                <p className="mt-1.5 text-sm text-gray-700"><span className="font-semibold text-gray-900">추천 이유</span> {v.reason}</p>
+                <p className="mt-1.5 text-sm text-gray-700"><span className="font-semibold text-gray-900">추천 이유</span> <ReadableText text={v.reason} /></p>
               ) : (
-                v.caption && <p className="mt-1.5 line-clamp-2 text-sm text-gray-700">{v.caption}</p>
+                v.caption && <p className="mt-1.5 text-sm text-gray-700"><ReadableText text={v.caption} /></p>
               )}
               {v.caution && <p className="mt-1 rounded-md bg-amber-50 px-2 py-1 text-[13px] text-amber-700">주의: {v.caution}</p>}
             </div>

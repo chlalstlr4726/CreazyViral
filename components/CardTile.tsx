@@ -1,5 +1,6 @@
 "use client";
 
+import { ReadableText } from "./ReadableText";
 import Link from "next/link";
 import { useState } from "react";
 import clsx from "clsx";
@@ -70,7 +71,7 @@ export function CardTile({
   const total = card.storyboard[card.storyboard.length - 1]?.end_s ?? 0;
 
   return (
-    <article
+    <article data-type={card.type}
       className={clsx(
         "relative flex flex-col rounded-xl border bg-white p-6 shadow-xs transition",
         status === "selected" ? "border-blue-500 ring-2 ring-blue-500/20" : "border-gray-200",
@@ -94,15 +95,15 @@ export function CardTile({
       </div>
 
       <h3 className="mt-4 text-[22px] font-bold leading-snug tracking-tight">{card.title}</h3>
-      <p className="mt-2 text-sm leading-relaxed text-gray-600">{card.rationale}</p>
+      <p className="mt-2 text-sm leading-relaxed text-gray-600"><ReadableText text={card.rationale ?? ""} /></p>
 
-      <div className="mt-5 rounded-lg bg-gray-50 p-4">
+      <div className="card-hook mt-5 rounded-lg bg-gray-50 p-4">
         <div className="text-[11px] font-semibold tracking-wide text-gray-400">훅 (0–{hook.end_s}초)</div>
         <p className="mt-1 text-[15px] font-semibold text-gray-900">“{hook.caption}”</p>
         <p className="mt-0.5 text-[13px] text-gray-500">{hook.visual}</p>
       </div>
 
-      <dl className="mt-5 grid grid-cols-3 gap-4 text-sm">
+      <dl className="mt-5 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
         <div>
           <dt className="mb-1.5 flex items-center gap-1 text-xs text-gray-400">제작 난이도</dt>
           <dd>
