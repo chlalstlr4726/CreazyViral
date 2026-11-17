@@ -243,6 +243,36 @@ async function supabaseRequest(url, options) {
   return result;
 }
 
+async function readDailyRecs(date) {
+  const key = process.env.SUPABASE_SECRET_KEY;
+  if (!process.env.SUPABASE_URL || !key) {
+    throw new RequestError(503, '서버에 SUPABASE_URL과 SUPABASE_SECRET_KEY를 설정해 주세요.');
+  }
+  const url = new URL('/rest/v1/daily_recs', process.env.SUPABASE_URL);
+  if (url.protocol !== 'https:' && !['127.0.0.1', 'localhost'].includes(url.hostname)) {
+    throw new RequestError(503, 'SUPABASE_URL은 HTTPS 프로젝트 주소여야 합니다.');
+  }
+  url.searchParams.set('select', 'shortcode,url,plays,shares,flow,hook_3s,cta');
+  url.searchParams.set('rec_date', `eq.${date}`);
+  url.searchParams.set('in_top10', 'eq.true');
+  url.searchParams.set('order', 'rank.asc');
+  const headers = { apikey: key };
+  if (!key.startsWith('sb_secret_')) headers.Authorization = `Bearer ${key}`;
+  const rows = await (await supabaseRequest(url, { headers })).json();
+  const reels = rows
+    .filter(row => isText(row.shortcode) && isText(row.flow) && isText(row.hook_3s) && isCount(row.plays) && row.plays > 0)
+    .map(row => ({
+      id: row.shortcode,
+      format: row.flow,
+      summary: `첫 3초: ${row.hook_3s}` + (isText(row.cta) && !row.cta.startsWith('없음') ? ` / 끝: ${row.cta}` : ''),
+      views: row.plays,
+      shares: isCount(row.shares) ? row.shares : null,
+      url: typeof row.url === 'string' && /^https:\/\//i.test(row.url) ? row.url : null,
+    }));
+  if (reels.length === 0) throw new RequestError(404, `${date} 추천 릴스(daily_recs)가 아직 없습니다.`);
+  return reels;
+}
+
 async function findDailyCards(table, date, accountId) {
   const ids = ['dummy', 'service'].map(type => cardId(date, type, accountId));
   const url = new URL(table.url);
@@ -269,11 +299,11 @@ function send(response, status, body) {
   response.end(JSON.stringify(body, null, 2));
 }
 
-if (!['mock', 'real'].includes(dataSource) || !['demo', 'openai'].includes(generator)) {
-  throw new Error('DATA_SOURCE는 mock/real, GENERATOR는 demo/openai 중 하나를 설정해 주세요.');
+if (!['mock', 'real', 'db'].includes(dataSource) || !['demo', 'openai'].includes(generator)) {
+  throw new Error('DATA_SOURCE는 mock/real/db, GENERATOR는 demo/openai 중 하나를 설정해 주세요.');
 }
-if (dataSource === 'real' && generator !== 'openai') {
-  throw new Error('실제 데이터 모드는 GENERATOR=openai 설정이 필요합니다.');
+if (dataSource !== 'mock' && generator !== 'openai') {
+  throw new Error('실제 데이터(real/db) 모드는 GENERATOR=openai 설정이 필요합니다.');
 }
 
 const server = createServer(async (request, response) => {
@@ -302,7 +332,9 @@ const server = createServer(async (request, response) => {
       const existing = await findDailyCards(table, cardDate, accountId);
       if (existing.length === 2) return send(response, 200, { date: cardDate, cards: existing });
     }
-    const reels = dataSource === 'mock' ? demoReels : await readReels(request, date);
+    const reels = dataSource === 'mock' ? demoReels
+      : dataSource === 'db' ? await readDailyRecs(date)
+      : await readReels(request, date);
     const [planA, planB] = generator === 'demo'
       ? [demo.A, demo.B]
       : await Promise.all([generatePlan(reels, 'A', accountId), generatePlan(reels, 'B', accountId)]);

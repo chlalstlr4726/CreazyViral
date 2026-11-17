@@ -67,3 +67,18 @@ foreach ($accountId in @('moodiee', 'creazy', 'bbakk')) {
 ```
 
 카드 ID는 `YYYY-MM-DD-dummy-{account_id}-0`과 `YYYY-MM-DD-service-{account_id}-0`입니다. 실제 모드에서는 각 POST에 전날 릴스 JSON을 담아 주세요. 추천 근거의 조회수와 공유 수는 입력에서 가져옵니다. 오디오는 미정으로 표시하며, 분석 점수와 회사 소재 ID는 팀 데이터가 준비되면 연결합니다. 재생성 API와 아침 실행 일정은 후속 작업입니다.
+
+## Supabase 추천 표에서 바로 읽기 (`DATA_SOURCE=db`)
+
+`DATA_SOURCE=db`로 두면 서버가 요청 본문 대신 Supabase의 매일 추천 표(`daily_recs`)에서 한국 시간 기준 전날의 상위 10편(`in_top10 = true`, `rank` 순)을 읽어 재료로 씁니다. 릴스 JSON을 따로 보낼 필요가 없습니다.
+
+- 필요한 설정: `DATA_SOURCE=db`, `GENERATOR=openai`, `OPENAI_API_KEY`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY`
+- 칸 대응: `id` ← `shortcode`, `format` ← `flow`(전개 한 줄), `summary` ← "첫 3초: `hook_3s`"(+ 끝에 행동 유도가 있으면 " / 끝: `cta`"), `views` ← `plays`, `shares` ← `shares`, `url` ← `url`
+- `/cards/preview`는 GET, `/cards/generate`는 POST(본문 없음)로 부릅니다.
+- 전날 추천이 아직 없으면 404를 돌려줍니다.
+
+```powershell
+foreach ($accountId in @('moodiee', 'creazy', 'bbakk')) {
+  Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:3001/cards/generate?account_id=$accountId" | ConvertTo-Json -Depth 10
+}
+```
