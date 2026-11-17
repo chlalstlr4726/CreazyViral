@@ -7,6 +7,15 @@ const brand = {
   description: '셀러의 상품을 바탕으로 AI를 이용해 홍보 영상을 만들어주는 서비스',
 };
 
+const accounts = new Map([
+  ['moodiee', '친근한 캐릭터와 자막 중심의 페르소나 계정'],
+  ['creazy', '팀원이 직접 등장해 팀과 서비스를 보여 주는 공식 계정'],
+  ['bbakk', 'AI 상세페이지 전문 강사가 직접 시연하는 개인 계정'],
+]);
+const cardId = (date, type, accountId) => accountId
+  ? `${date}-${type}-${accountId}-0`
+  : `${date}-${type}-0`;
+
 const dataSource = process.env.DATA_SOURCE ?? 'mock';
 const generator = process.env.GENERATOR ?? 'demo';
 const apiKey = process.env.OPENAI_API_KEY;
@@ -101,7 +110,7 @@ const object = properties => ({
   type: 'object', properties, required: Object.keys(properties), additionalProperties: false,
 });
 
-async function generatePlan(reels, type) {
+async function generatePlan(reels, type, accountId) {
   if (!apiKey) throw new RequestError(503, '서버의 OPENAI_API_KEY를 설정해 주세요.');
   const plan = object({
     reelId: { type: 'string', enum: reels.map(reel => reel.id) },
@@ -130,6 +139,7 @@ async function generatePlan(reels, type) {
       ].join('\n'),
       input: JSON.stringify({
         brand: type === 'B' ? brand : undefined,
+        account: accountId ? accounts.get(accountId) : undefined,
         reels: reels.map(({ url, ...reel }) => reel),
       }),
       text: { format: { type: 'json_schema', name: 'recommendation', strict: true, schema: plan } },
@@ -171,7 +181,7 @@ function withEvidence(plan, reels) {
   };
 }
 
-function toCard(plan, date, type) {
+function toCard(plan, date, type, accountId) {
   const { evidence, scenes } = plan;
   const storyboard = scenes.map((scene, index) => {
     const timing = /^(\d+)\s*초?\s*[-–—~]\s*(\d+)\s*초?$/.exec(scene.timing.trim());
@@ -194,7 +204,8 @@ function toCard(plan, date, type) {
   }
   const source = dataSource === 'mock' ? '가상 참고 게시물' : '참고 게시물';
   return {
-    card_id: `${date}-${type}-0`,
+    card_id: cardId(date, type, accountId),
+    ...(accountId ? { account_id: accountId } : {}),
     date,
     type,
     title: plan.title,
@@ -232,8 +243,8 @@ async function supabaseRequest(url, options) {
   return result;
 }
 
-async function findDailyCards(table, date) {
-  const ids = [`${date}-dummy-0`, `${date}-service-0`];
+async function findDailyCards(table, date, accountId) {
+  const ids = ['dummy', 'service'].map(type => cardId(date, type, accountId));
   const url = new URL(table.url);
   url.searchParams.set('card_id', `in.(${ids.join(',')})`);
   const rows = await (await supabaseRequest(url, { headers: table.headers })).json();
@@ -248,7 +259,7 @@ async function saveDailyCards(table, cards) {
     headers: { ...table.headers, 'Content-Type': 'application/json', Prefer: 'resolution=ignore-duplicates,return=minimal' },
     body: JSON.stringify(cards),
   });
-  const saved = await findDailyCards(table, cards[0].date);
+  const saved = await findDailyCards(table, cards[0].date, cards[0].account_id);
   if (saved.length !== 2) throw new RequestError(502, '저장된 카드 두 장을 확인하지 못했습니다.');
   return saved;
 }
@@ -267,7 +278,8 @@ if (dataSource === 'real' && generator !== 'openai') {
 
 const server = createServer(async (request, response) => {
   try {
-    const path = request.url?.split('?')[0];
+    const url = new URL(request.url ?? '/', 'http://localhost');
+    const path = url.pathname;
     const saveCards = path === '/cards/generate';
     const cardRequest = saveCards || path === '/cards/preview';
     if (!cardRequest && path !== '/api/recommendations') {
@@ -278,21 +290,25 @@ const server = createServer(async (request, response) => {
       response.setHeader('Allow', expectedMethod);
       throw new RequestError(405, `${expectedMethod} 요청을 보내 주세요.`);
     }
+    const accountId = cardRequest ? url.searchParams.get('account_id') : null;
+    if ((saveCards || accountId !== null) && !accounts.has(accountId)) {
+      throw new RequestError(400, 'account_id는 moodiee, creazy, bbakk 중 하나여야 합니다.');
+    }
     const now = Date.now();
     const cardDate = dateInSeoul(new Date(now));
     const date = dateInSeoul(new Date(now - 86400000));
     const table = saveCards ? cardsTable() : null;
     if (table) {
-      const existing = await findDailyCards(table, cardDate);
+      const existing = await findDailyCards(table, cardDate, accountId);
       if (existing.length === 2) return send(response, 200, { date: cardDate, cards: existing });
     }
     const reels = dataSource === 'mock' ? demoReels : await readReels(request, date);
     const [planA, planB] = generator === 'demo'
       ? [demo.A, demo.B]
-      : await Promise.all([generatePlan(reels, 'A'), generatePlan(reels, 'B')]);
+      : await Promise.all([generatePlan(reels, 'A', accountId), generatePlan(reels, 'B', accountId)]);
     const recommendations = { A: withEvidence(planA, reels), B: withEvidence(planB, reels) };
     if (cardRequest) {
-      const cards = [toCard(recommendations.A, cardDate, 'dummy'), toCard(recommendations.B, cardDate, 'service')];
+      const cards = [toCard(recommendations.A, cardDate, 'dummy', accountId), toCard(recommendations.B, cardDate, 'service', accountId)];
       return send(response, 200, {
         date: cardDate,
         cards: table ? await saveDailyCards(table, cards) : cards,
