@@ -54,12 +54,16 @@ VS Code에서 `.env.example`을 복사해 같은 폴더에 `.env.local`로 저�
 
 `/cards/preview`는 팀의 카드 형식으로 변환한 두 장을 보여줍니다. Supabase 설정 없이 실행할 수 있습니다. 예를 들어 서버를 3001번에서 실행 중이면 브라우저에서 `http://127.0.0.1:3001/cards/preview`를 엽니다.
 
-`/cards/generate`는 Supabase의 `cards`에 오늘 날짜(한국 시간)의 `dummy`와 `service`를 한 요청으로 저장하고, DB에서 두 장을 다시 읽어 반환합니다. 같은 날짜의 최초 카드 두 장이 이미 있으면 기존 카드를 반환합니다. 일부만 있으면 기존 카드를 보존하면서 빠진 카드를 채웁니다.
+`/cards/generate`에는 `?account_id=moodiee`, `?account_id=creazy`, `?account_id=bbakk` 중 하나가 필요합니다. `/cards/preview`에도 같은 값을 전달해 계정별 결과를 미리 볼 수 있습니다.
+
+`/cards/generate`는 Supabase의 `cards`에 오늘 날짜(한국 시간)의 `dummy`와 `service`를 한 요청으로 저장하고, DB에서 두 장을 다시 읽어 반환합니다. 같은 날짜·계정의 최초 카드 두 장이 이미 있으면 기존 카드를 반환합니다. 일부만 있으면 기존 카드를 보존하면서 빠진 카드를 채웁니다.
 
 저장 테스트에는 팀의 `001_init.sql`이 적용된 테스트 프로젝트를 사용합니다. 서버의 `.env.local`에 `SUPABASE_URL`과 서버 전용 `SUPABASE_SECRET_KEY`를 추가한 뒤 재시작합니다. `DATA_SOURCE=mock`으로 저장하면 카드의 추천 근거에 가상 참고 게시물이라고 표시됩니다. 실제 저장을 테스트하려면 서버를 켜 둔 채 별도 PowerShell 터미널에서 아래 명령을 실행합니다.
 
 ```powershell
-Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:3001/cards/generate' | ConvertTo-Json -Depth 10
+foreach ($accountId in @('moodiee', 'creazy', 'bbakk')) {
+  Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:3001/cards/generate?account_id=$accountId" | ConvertTo-Json -Depth 10
+}
 ```
 
-카드 ID는 `YYYY-MM-DD-dummy-0`과 `YYYY-MM-DD-service-0`입니다. 추천 근거의 조회수와 공유 수는 입력에서 가져옵니다. 오디오는 미정으로 표시하며, 분석 점수와 회사 소재 ID는 팀 데이터가 준비되면 연결합니다. 재생성 API와 아침 실행 일정은 후속 작업입니다.
+카드 ID는 `YYYY-MM-DD-dummy-{account_id}-0`과 `YYYY-MM-DD-service-{account_id}-0`입니다. 실제 모드에서는 각 POST에 전날 릴스 JSON을 담아 주세요. 추천 근거의 조회수와 공유 수는 입력에서 가져옵니다. 오디오는 미정으로 표시하며, 분석 점수와 회사 소재 ID는 팀 데이터가 준비되면 연결합니다. 재생성 API와 아침 실행 일정은 후속 작업입니다.
