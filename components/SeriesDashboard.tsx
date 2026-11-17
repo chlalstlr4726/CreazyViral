@@ -78,7 +78,7 @@ export function SeriesDashboard() {
           <Panel key={idea.name} className="series-card">
             <div className="series-heading">
               <h2 className="font-bold">{idea.name}</h2>
-              <div className="flex flex-wrap items-center gap-2"><Chip tone="blue">추천 {index + 1}</Chip><span className="series-score">종합 {idea.total}점</span></div>
+              <Chip tone="blue">추천 {index + 1}</Chip>
             </div>
             <p className="mt-1 text-gray-700">{idea.concept}</p>
             <dl className="series-facts text-sm">
@@ -86,9 +86,13 @@ export function SeriesDashboard() {
               <div><dt className="inline font-bold">반복 포맷 </dt><dd className="inline">{idea.recurringFormat}</dd></div>
               <div className="series-reason"><dt className="font-bold">선정 이유 </dt><dd><ReadableText text={idea.rationale} /></dd></div>
             </dl>
-            <ul className="mt-3 flex flex-wrap gap-2">
-              {SERIES_CRITERIA.map(({ key, label }) => <li key={key}><Chip>{label} {idea.scores[key]}점</Chip></li>)}
-            </ul>
+            <details className="mt-4 rounded-lg bg-gray-50 p-3">
+              <summary className="cursor-pointer text-sm font-bold">추천 점수 보기</summary>
+              <p className="mt-3 text-sm"><span className="series-score">종합 {idea.total}점</span></p>
+              <ul className="mt-2 flex flex-wrap gap-2">
+                {SERIES_CRITERIA.map(({ key, label }) => <li key={key}><Chip>{label} {idea.scores[key]}점</Chip></li>)}
+              </ul>
+            </details>
             <h3 className="mt-4 text-sm font-bold">근거 릴스</h3>
             <ul className="series-evidence mt-1 text-sm">
               {idea.evidence.map((reel) => <li key={reel.url}>
