@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Lightbulb } from "lucide-react";
-import type { CardType } from "@/lib/types";
+import type { Card, CardType } from "@/lib/types";
 import { ACCOUNT_BY_ID, type AccountId } from "@/lib/accounts";
 import { useStore } from "@/lib/store";
 import { buildDirection } from "@/lib/recommend";
@@ -40,6 +41,21 @@ export function TodaySection({ accountId }: { accountId: AccountId }) {
   const direction = useMemo(() => buildDirection(s.posts.filter((p) => p.card_id && p.account_id === accountId)), [s.posts, accountId]);
   const types: CardType[] = ["dummy", "service"];
   const hasCards = types.some((t) => s.todayCard(t, accountId));
+  const hasMissingCards = types.some((t) => !s.todayCard(t, accountId));
+  const [recent, setRecent] = useState<Card[]>([]);
+
+  useEffect(() => {
+    if (s.cardSource !== "supabase" || !hasMissingCards) return;
+    const abort = new AbortController();
+    fetch("/api/cards/recent", { cache: "no-store", signal: abort.signal })
+      .then(async (response) => {
+        if (!response.ok) return;
+        const data: { cards: Card[] } = await response.json();
+        setRecent(data.cards);
+      })
+      .catch(() => {});
+    return () => abort.abort();
+  }, [s.cardSource, hasMissingCards]);
 
   return (
     <div>
@@ -85,7 +101,11 @@ export function TodaySection({ accountId }: { accountId: AccountId }) {
       <div className="today-cards">
         {types.map((t) => {
           const card = s.todayCard(t, accountId);
-          if (!card) return <EmptyCard key={t} type={t} />;
+          if (!card) {
+            const previous = recent.find((c) => c.type === t && c.date < kstToday() && c.account_id === accountId)
+              ?? recent.find((c) => c.type === t && c.date < kstToday() && !c.account_id);
+            return <EmptyCard key={t} type={t} source={s.cardSource} previous={previous} />;
+          }
           return (
             <CardTile
               key={card.card_id}
@@ -117,12 +137,25 @@ export function TodaySection({ accountId }: { accountId: AccountId }) {
   );
 }
 
-function EmptyCard({ type }: { type: CardType }) {
+function EmptyCard({ type, source, previous }: { type: CardType; source: ReturnType<typeof useStore>["cardSource"]; previous?: Card }) {
+  const status = {
+    loading: "오늘 카드를 불러오는 중이에요",
+    error: "카드 DB에서 오늘 카드를 불러오지 못했어요",
+    unconfigured: "카드 DB 연결 설정이 필요해요",
+    supabase: "오늘 카드가 아직 저장되지 않았어요",
+  }[source];
   return (
     <div className="flex min-h-72 flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
       <TypeBadge type={type} />
-      <p className="mt-4 text-lg font-bold">아직 데이터 없음</p>
-      <p className="mt-1.5 text-sm leading-relaxed text-gray-500">오늘의 카드가 아직 없어요. 매일 아침 카드 API가 이 계정의 카드를 만들어 저장하면 여기에 나타나요.</p>
+      <p className="mt-4 text-lg font-bold">{status}</p>
+      {source === "supabase" && previous && (
+        <div className="mt-3 text-sm text-gray-500">
+          <p>최근 카드 · {koDate(previous.date)}{!previous.account_id && " · 계정 미지정"}</p>
+          <Link href={`/cards/${encodeURIComponent(previous.card_id)}`} className="mt-1 inline-block font-semibold text-blue-700">
+            {previous.title}
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
