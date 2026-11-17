@@ -89,6 +89,7 @@ html.seed-snap { scroll-snap-type: y mandatory; }
 .seed-video-label { display: grid; place-items: center; color: #64748b; font-size: 13px; }
 .seed-pop-still { margin: 40px 0 80px; background: #fff; border: 1px solid var(--seed-line); border-radius: 18px; padding: 24px; display: grid; gap: 14px; }
 .seed-pop-still h2 { margin: 0; font-size: 20px; }
+.seed-flip-flat { width: 100%; }
 .seed-pop-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
 
 /* 소개 팝업: 카드 뒤집기 */

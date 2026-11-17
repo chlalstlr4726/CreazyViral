@@ -67,12 +67,12 @@ export function SeedTab() {
       )}
       {data?.status === "ok" && <SeedFeed items={capture ? data.items.slice(0, 2) : data.items} grown={grown} capture={capture} />}
       {explain && <ExplainPopup onClose={() => setExplain(false)} />}
-      {capture && (pop === "a" || pop === "b") && <ExplainPopup onClose={() => {}} startFlipped={pop === "b"} />}
+      {capture && (pop === "a" || pop === "b") && <ExplainPopup onClose={() => {}} startFlipped={pop === "b"} flat />}
     </div>
   );
 }
 
-function ExplainPopup({ onClose, still = false, startFlipped = false }: { onClose: () => void; still?: boolean; startFlipped?: boolean }) {
+function ExplainPopup({ onClose, still = false, startFlipped = false, flat = false }: { onClose: () => void; still?: boolean; startFlipped?: boolean; flat?: boolean }) {
   const [flipped, setFlipped] = useState(startFlipped);
   useEffect(() => {
     const k = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -84,7 +84,7 @@ function ExplainPopup({ onClose, still = false, startFlipped = false }: { onClos
       ? { tag: "방구석 백수", title: "인스타 릴스 중독자", img: "/seed/meme-addict.jpg", alt: "릴스 5시간 둠스크롤 뒤 뇌가 빨려 나간 사람 그림(밈)", pts: ["아무 도움 안 되는 릴스만 내리며 감각을 깎아 먹음", "도파민에 절여짐", "인스타에 지배당함"] }
       : { tag: "나도 이젠… 감다살?", title: "릴스 개척자", img: "/seed/meme-pioneer.jpg", alt: "이 페이지에서 5분 뒤 눈부시게 깨달은 사람 그림(밈)", pts: ["엄선된 릴스만 쏙쏙(오늘의 100편)", "릴스마다 넓혀 볼 아이디어 씨앗까지", "아이디어는 내가 스스로 키움"] };
     return (
-      <article className={"seed-persona " + who} aria-hidden={still ? undefined : (who === "b") !== flipped}>
+      <article className={"seed-persona " + who} aria-hidden={still || flat ? undefined : (who === "b") !== flipped}>
         <span className="seed-ptag">{p.tag}</span>
         <h3>{p.title}</h3>
         <img src={p.img} alt={p.alt} />
@@ -105,10 +105,15 @@ function ExplainPopup({ onClose, still = false, startFlipped = false }: { onClos
       <div className="seed-pop-card" role="dialog" aria-modal="true" aria-label="씨앗 탭 소개">
         <button type="button" className="seed-pop-x" aria-label="닫기" onClick={onClose} autoFocus>×</button>
         <h2>씨앗 탭은 이런 곳이에요</h2>
-        <div className={"seed-flip" + (flipped ? " on" : "")}>
-          <div className="seed-face front">{card("a")}</div>
-          <div className="seed-face back">{card("b")}</div>
-        </div>
+        {flat ? (
+          // 피그마로 옮길 때: 3D 회전 없이 지금 면 하나만
+          <div className="seed-flip-flat">{flipped ? card("b") : card("a")}</div>
+        ) : (
+          <div className={"seed-flip" + (flipped ? " on" : "")}>
+            <div className="seed-face front">{card("a")}</div>
+            <div className="seed-face back">{card("b")}</div>
+          </div>
+        )}
         <button type="button" className="seed-flip-btn" onClick={() => setFlipped((v) => !v)}>
           {flipped ? "← 다시 중독자로" : "이 페이지에서 5분 보내기 →"}
         </button>
