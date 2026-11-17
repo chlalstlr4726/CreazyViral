@@ -3,6 +3,7 @@
 import { AccountTabs } from "@/components/AccountTabs";
 import { ReferenceSection } from "@/components/ReferenceSection";
 import { SeriesDashboard } from "@/components/SeriesDashboard";
+import { SeedTab } from "@/components/seed/SeedTab";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -11,6 +12,7 @@ const tabs = [
   { key: "today", label: "오늘 콘텐츠" },
   { key: "competitors", label: "경쟁사 분석" },
   { key: "series", label: "신규 채널 추천" },
+  { key: "seed", label: "씨앗🌱" },
 ] as const;
 
 function HomeTabs() {
@@ -36,6 +38,7 @@ function HomeTabs() {
         </section>
       )}
       {selected === "series" && <SeriesDashboard />}
+      {selected === "seed" && <SeedTab />}
     </div>
   );
 }
