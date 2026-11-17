@@ -1,5 +1,6 @@
 // 서버 전용: Supabase `cards` 테이블에서 카드를 읽는다 (승원 카드 API가 저장한 카드).
 // SUPABASE_SECRET_KEY는 서버 환경변수로만 쓰고 브라우저로 내려보내지 않는다.
+import { ACCOUNT_PROFILES } from "./accounts";
 import type { Card } from "./types";
 
 // 예: 2026-11-13-dummy-0 (예전 형식) 또는 2026-11-13-dummy-moodiee-0 (계정 포함)
@@ -30,9 +31,14 @@ const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
 export function normalizeCard(row: Record<string, unknown>): Card {
   const audio = (row.audio ?? {}) as { name?: unknown; commercial_ok?: unknown };
   const d = Number(row.difficulty);
+  const cardId = String(row.card_id);
+  const accountFromId = CARD_ID.test(cardId) ? cardId.split("-").at(-2) : undefined;
+  const account = ACCOUNT_PROFILES.find((profile) => profile.id === (row.account_id || accountFromId));
   return {
-    card_id: String(row.card_id),
-    account_id: row.account_id ? String(row.account_id) : undefined,
+    card_id: cardId,
+    account_id: account?.id ?? (row.account_id ? String(row.account_id) : undefined),
+    ...(row.score && typeof row.score === "object" && !Array.isArray(row.score) && Object.keys(row.score).length > 0
+      ? { score: row.score as Record<string, unknown> } : {}),
     date: String(row.date),
     type: row.type === "service" ? "service" : "dummy",
     title: String(row.title ?? ""),
