@@ -4,7 +4,10 @@
 import { CLS, GLYPHS, asciiFrag, asciiVert, makeAtlas, tagMaterial } from "./asciiPass";
 
 export type Phase = "seed" | "sprout" | "sapling" | "bloom" | "done";
-type Opts = { reduced: boolean; delayMs: number; bg: [number, number, number]; onPhase?: (p: Phase) => void; onLayout?: (groundTop: number) => void; jumpT?: number };
+type Opts = { reduced: boolean; delayMs: number; bg: [number, number, number]; onPhase?: (p: Phase) => void; onLayout?: (groundTop: number) => void; jumpT?: number;
+  /** 나무 꼭대기가 넘지 않을 선(장면 위에서부터 0~1, 소개 카드 아래). */ topLimit?: () => number;
+  /** 밑동(씨앗)이 올 가로 위치(왼쪽에서부터 0~1). */ baseX?: number;
+  /** 소개 카드 오른쪽 끝(왼쪽에서부터 0~1): 나무가 이 선 왼쪽으로 넘지 않는다. */ cardRight?: () => number };
 
 const rng = (seed: number) => () => {
   seed = (seed + 0x6d2b79f5) | 0;
@@ -260,9 +263,11 @@ export async function startWorldTree(host: HTMLElement, o: Opts) {
 
   const treeTop = Math.max(...segs.map((x) => x.b.y), ...blossoms.map((x) => x.p.y)) + 0.6;
   const treeHalfW = Math.max(...segs.map((x) => Math.hypot(x.b.x, x.b.z)), ...blossoms.map((x) => Math.hypot(x.p.x, x.p.z))) + 0.6;
-  /** 밑동(씨앗)은 땅 띠의 한가운데, 나무 꼭대기는 장면 위에서 약 4%(제목 바로 아래)에 오게 카메라 거리와 볼 높이를 맞춘다. 땅 띠 윗선(0~1)을 알려 준다. */
+  /** 밑동(씨앗)은 땅 띠의 세로 한가운데·가로 baseX, 나무 꼭대기는 소개 카드 바로 아래에 오게 카메라를 맞춘다. 땅 띠 윗선(0~1)을 알려 준다. */
   function frameCamera(portrait: boolean) {
-    const h0 = portrait ? 7 : 5;
+    const h0 = portrait ? 7 : 5, topNdc = 1 - 2 * Math.min(0.6, Math.max(0.04, o.topLimit?.() ?? 0.04));
+    const wantX = 2 * (o.baseX ?? 0.5) - 1, cardX = 2 * (o.cardRight?.() ?? 0) - 1;
+    const halfAllowed = Math.max(0.2, Math.min(wantX - cardX - 0.02, 0.96 - wantX)); // 카드와 오른쪽 끝 사이에 들어갈 나무 반폭(NDC)
     let top = 0;
     const aim = (dist: number) => {
       camera.position.set(0, h0, dist);
@@ -276,11 +281,22 @@ export async function startWorldTree(host: HTMLElement, o: Opts) {
         if (base > (far - 1) / 2) lo = mid; else hi = mid;
       }
       const tY = V(0, treeTop, 0).project(camera).y, side = Math.abs(V(treeHalfW, treeTop * 0.6, 0).project(camera).x);
-      return tY > 0.92 || side > 0.96 ? 1 : -1; // 1이면 너무 커서 더 멀리
+      return tY > topNdc || side > halfAllowed ? 1 : -1; // 1이면 너무 커서 더 멀리
     };
     let lo = 14, hi = 140;
     for (let k = 0; k < 22; k++) { const mid = (lo + hi) / 2; if (aim(mid) > 0) lo = mid; else hi = mid; }
     aim(hi);
+    // 나무를 왼쪽으로: 카메라를 옆으로 옮겨(볼 방향은 그대로) 밑동이 baseX에 오게 한다
+    const look = new THREE.Vector3();
+    camera.getWorldDirection(look);
+    let pl = -40, ph = 40;
+    for (let k = 0; k < 24; k++) {
+      const mid = (pl + ph) / 2;
+      camera.position.x = mid;
+      camera.lookAt(mid + look.x * 10, camera.position.y + look.y * 10, camera.position.z + look.z * 10);
+      camera.updateMatrixWorld();
+      if (V(0, 0, 0).project(camera).x > wantX) pl = mid; else ph = mid;
+    }
     fog.near = hi - treeHalfW * 0.2;
     fog.far = hi + treeHalfW * 2.6;
     o.onLayout?.((1 - top) / 2);

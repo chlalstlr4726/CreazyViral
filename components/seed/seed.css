@@ -7,7 +7,7 @@ html.seed-snap { scroll-snap-type: y mandatory; }
 .seed-hero { position: relative; margin-top: 14px; height: calc(100vh - 170px); min-height: 520px; border-radius: 16px; overflow: hidden; background: #f9fafb; border: 1px solid var(--seed-line); }
 .seed-stage { position: absolute; inset: 0; }
 .seed-fallback { position: absolute; left: 50%; bottom: 18%; transform: translateX(-50%); font: 13px/1.15 Menlo, monospace; color: #8b7b6b; }
-.seed-intro { position: absolute; z-index: 2; left: 20px; bottom: calc((1 - var(--seed-ground, 0.7)) * 100% + 14px); max-width: 420px; padding: 16px 18px; border-radius: 14px;
+.seed-intro { position: absolute; z-index: 2; left: 20px; top: 16px; max-width: 420px; padding: 16px 18px; border-radius: 14px;
   background: rgba(255, 255, 255, 0.72); -webkit-backdrop-filter: blur(16px) saturate(170%); backdrop-filter: blur(16px) saturate(170%);
   border: 1px solid rgba(255, 255, 255, 0.6); box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1); }
 .seed-intro p { margin: 0 0 6px; color: var(--seed-sub); font-size: 14.5px; line-height: 1.7; word-break: keep-all; }
