@@ -15,8 +15,8 @@ html.seed-snap { scroll-snap-type: y proximity; }
 @keyframes seed-flow { to { transform: translateX(-50%); } }
 .seed-motto { padding: 16px 24px 18px; text-align: center; display: grid; gap: 0; }
 .seed-motto p { margin: 0; font-size: 13px; line-height: 1.55; color: #6b7280; letter-spacing: 0.01em; word-break: keep-all; }
-.seed-personas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(24px, 9vw, 112px); padding: 0 28px; align-items: start; }
-.seed-persona { border-radius: 14px; padding: 16px; display: grid; gap: 10px; min-width: 0; }
+.seed-personas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(24px, 9vw, 112px); padding: 0 28px; align-items: stretch; } /* 두 카드 높이를 같게 */
+.seed-persona { border-radius: 14px; padding: 16px; display: grid; grid-template-rows: auto auto auto 1fr; gap: 10px; min-width: 0; }
 .seed-persona.a { background: #a7b2c9; }
 .seed-persona.b { background: #6495f5; }
 .seed-persona h3 { margin: 0; font-size: 20px; font-weight: 500; color: #111827; }
