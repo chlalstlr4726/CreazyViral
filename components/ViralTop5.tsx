@@ -53,9 +53,9 @@ export function ViralTop5({ days, onDays }: { days: Days; onDays: (d: Days) => v
       <div className="mb-3 text-[12px] leading-relaxed text-gray-400">
         <div className="font-semibold text-gray-500">Top 5 기준</div>
         {source === "daily_recs" ? (
-          <div>* 매일 아침 자동으로 고른 피드 상위 10편(Supabase daily_recs)에서 앞 5편을 보여 줍니다. 국내는 형 판정 "터짐" 가운데 공유 수 순, 해외는 조회수 순이고, 광고·방송 클립·유명인이 나오는 릴스·댓글이 좋아요의 2배 이상인 릴스·6개월 넘은 릴스는 뺐습니다{recDate ? ` (${recDate} 추천)` : ""}. 아래 AI 스토리보드도 이 영상들을 기준으로 만듭니다.</div>
+          <div>* 매일 아침 자동으로 고른 추천 상위 10편 가운데 앞 5편입니다{recDate ? ` (${recDate} 추천)` : ""}. 국내는 수집 단계에서 바이럴로 분류된 릴스를 공유 수 순으로, 해외는 조회수 순으로 골랐습니다. 크리에이지와 닿는 주제는 먼저 넣었고, 광고·방송 클립·유명인이 나오는 릴스·댓글이 좋아요의 2배 이상인 릴스·6개월 넘은 릴스는 뺐습니다. 추천 이유의 순위는 오늘 피드 안에서 매긴 것입니다. 아래 AI 스토리보드도 이 영상들을 기준으로 만듭니다.</div>
         ) : (
-          <div>* Supabase reels 데이터에서 가져옵니다. 분석 결과가 "터짐"인 영상 중 최근 3, 7, 14일 조회수 상위 5개를 가져옵니다. 아래 AI 스토리보드도 이 영상들을 기준으로 만들고 있습니다.</div>
+          <div>* 수집한 릴스 가운데 바이럴로 분류된 영상에서 최근 3, 7, 14일 조회수 상위 5개를 가져옵니다. 아래 AI 스토리보드도 이 영상들을 기준으로 만들고 있습니다.</div>
         )}
       </div>
       {failed && <p className="p-6 text-center text-sm text-red-500">영상 목록을 불러오지 못했어요.</p>}
