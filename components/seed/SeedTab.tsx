@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import type { FeedResult } from "@/lib/feed";
 import { SeedHero } from "./SeedHero";
 import { SeedFeed } from "./SeedFeed";
+import { EditPanel } from "./EditPanel";
+import { DEFAULT_SETTINGS, type SeedSettings } from "./settings";
 import "./seed.css";
 
 /** 홈 네 번째 탭 "씨앗": 의미 있는 둠스크롤. 첫 화면은 3D 아스키 세계수, 아래는 한 편씩 넘기는 릴스 100편. */
@@ -11,6 +13,9 @@ export function SeedTab() {
   const [data, setData] = useState<FeedResult | null>(null);
   const [grown, setGrown] = useState(false);
   const [explain, setExplain] = useState(false);
+  const [settings, setSettings] = useState<SeedSettings>(DEFAULT_SETTINGS);
+  const [editing, setEditing] = useState(false);
+  const canEdit = process.env.NODE_ENV === "development"; // 편집 모드는 내 컴퓨터의 개발 화면에서만
 
   useEffect(() => {
     let alive = true;
@@ -28,10 +33,18 @@ export function SeedTab() {
 
   return (
     <div className="seed-tab">
-      <h1 className="text-3xl font-bold tracking-tight">
-        씨앗<span aria-hidden="true">🌱</span>
-      </h1>
-      <SeedHero onExplain={() => setExplain(true)} onGrown={() => setGrown(true)} />
+      <div className="seed-titlebar">
+        <h1 className="text-3xl font-bold tracking-tight">
+          씨앗<span aria-hidden="true">🌱</span>
+        </h1>
+        {canEdit && (
+          <button type="button" className="seed-edit-toggle" aria-pressed={editing} onClick={() => setEditing((v) => !v)}>
+            {editing ? "편집 끝내기" : "✎ 직접 편집"}
+          </button>
+        )}
+      </div>
+      <SeedHero settings={settings} editing={editing} onCard={(patch) => setSettings((s) => ({ ...s, card: { ...s.card, ...patch } }))} onExplain={() => setExplain(true)} onGrown={() => setGrown(true)} />
+      {editing && <EditPanel value={settings} onChange={setSettings} onClose={() => setEditing(false)} />}
       {data === null && <p className="seed-state">불러오는 중…</p>}
       {data && data.status !== "ok" && (
         <p className="seed-state">

@@ -2,11 +2,12 @@
 // 매화: 꼬이고 마디진 줄기와 가지, 잎보다 먼저 맨가지에 바로 붙어 피는 다섯 꽃잎(흰색·분홍). 둘레에 나비, 떨어지는 꽃잎, 뒤쪽 안개와 옅은 달.
 // three는 이 파일을 부를 때만 불러온다(다른 탭을 느리게 하지 않음).
 import { CLS, GLYPHS, asciiFrag, asciiVert, makeAtlas, tagMaterial } from "./asciiPass";
+import type { SeedSettings } from "./settings";
 
 export type Phase = "seed" | "sprout" | "sapling" | "bloom" | "done";
 type Opts = { reduced: boolean; delayMs: number; bg: [number, number, number]; onPhase?: (p: Phase) => void; onLayout?: (groundTop: number) => void; jumpT?: number;
   /** 나무 꼭대기가 넘지 않을 선(장면 위에서부터 0~1, 소개 카드 아래). */ topLimit?: () => number;
-  /** 밑동(씨앗)이 올 가로 위치(왼쪽에서부터 0~1). */ baseX?: number;
+  /** 사람이 고칠 수 있는 값(편집 모드). 돌아가는 동안 apply()로 바꿀 수 있다. */ settings: SeedSettings;
   /** 소개 카드 오른쪽 끝(왼쪽에서부터 0~1): 나무가 이 선 왼쪽으로 넘지 않는다. */ cardRight?: () => number };
 
 const rng = (seed: number) => () => {
@@ -50,18 +51,23 @@ export async function startWorldTree(host: HTMLElement, o: Opts) {
   };
 
   // 땅: 화면 아래를 가로로 꽉 채우는 넓은 둥근 땅(무늬가 있어 도는 게 보인다)
+  let S = o.settings;
   const tc = document.createElement("canvas");
   tc.width = tc.height = 512;
   const tg = tc.getContext("2d")!;
-  tg.fillStyle = "#86a05e";
-  tg.fillRect(0, 0, 512, 512);
-  for (let i = 0; i < 2600; i++) {
-    const k = R();
-    tg.fillStyle = k < 0.45 ? `rgba(70,110,50,${0.25 + R() * 0.4})` : k < 0.8 ? `rgba(150,170,100,${0.2 + R() * 0.4})` : `rgba(120,95,70,${0.3 + R() * 0.4})`;
-    tg.beginPath();
-    tg.arc(R() * 512, R() * 512, 2 + R() * 14, 0, 6.283);
-    tg.fill();
-  }
+  const paintGround = (base: string) => {
+    const r2 = rng(77);
+    tg.fillStyle = base;
+    tg.fillRect(0, 0, 512, 512);
+    for (let i = 0; i < 2600; i++) {
+      const k = r2();
+      tg.fillStyle = k < 0.45 ? `rgba(40,70,30,${0.18 + r2() * 0.3})` : k < 0.8 ? `rgba(255,255,230,${0.12 + r2() * 0.25})` : `rgba(120,95,70,${0.3 + r2() * 0.4})`;
+      tg.beginPath();
+      tg.arc(r2() * 512, r2() * 512, 2 + r2() * 14, 0, 6.283);
+      tg.fill();
+    }
+  };
+  paintGround(S.color.ground);
   const groundTex = new THREE.CanvasTexture(tc);
   groundTex.wrapS = groundTex.wrapT = THREE.RepeatWrapping;
   groundTex.repeat.set(5, 5);
@@ -146,12 +152,23 @@ export async function startWorldTree(host: HTMLElement, o: Opts) {
 
   const cyl = new THREE.CylinderGeometry(1, 1, 1, 7, 1);
   cyl.translate(0, 0.5, 0);
-  const woodIM = new THREE.InstancedMesh(cyl, mat(0x7d6a5c, CLS.wood), segs.length);
+  const woodMat = mat(0x7d6a5c, CLS.wood);
+  woodMat.color.set(S.color.wood);
+  const woodIM = new THREE.InstancedMesh(cyl, woodMat, segs.length);
   const PET = 6; // 꽃잎 다섯 + 가운데 꽃술
   const petalGeo = new THREE.CircleGeometry(1, 10);
   const flowerIM = new THREE.InstancedMesh(petalGeo, mat(0xffffff, CLS.flower, { side: THREE.DoubleSide }), blossoms.length * PET);
-  const pinks = [0xf4b6c8, 0xf7c9d6, 0xee9fb8, 0xfbe3ea, 0xffffff];
-  for (let i = 0; i < blossoms.length; i++) for (let k = 0; k < PET; k++) flowerIM.setColorAt(i * PET + k, new THREE.Color(k === 5 ? 0xe2b84c : blossoms[i].pink ? pinks[Math.floor(R() * 4)] : pinks[3 + Math.floor(R() * 2)]));
+  // 꽃 색: 기준 분홍 하나에서 밝기만 조금씩 다르게(흰 꽃은 기준색을 아주 옅게)
+  const shade = blossoms.map(() => [R(), R(), R(), R(), R()]);
+  const paintFlowers = (base: string) => {
+    const b = new THREE.Color(base), c = new THREE.Color(), white = new THREE.Color(0xffffff), stamen = new THREE.Color(0xe2b84c);
+    blossoms.forEach((bl, i) => {
+      for (let k = 0; k < 5; k++) flowerIM.setColorAt(i * PET + k, c.copy(b).lerp(white, bl.pink ? shade[i][k] * 0.45 : 0.72 + shade[i][k] * 0.25));
+      flowerIM.setColorAt(i * PET + 5, stamen);
+    });
+    if (flowerIM.instanceColor) flowerIM.instanceColor.needsUpdate = true;
+  };
+  paintFlowers(S.color.blossom);
   const leafIM = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), mat(0x5aa84a, CLS.leaf), sapLeaves.length);
   // 떨어지는 꽃잎
   const FALL = 60;
@@ -167,7 +184,8 @@ export async function startWorldTree(host: HTMLElement, o: Opts) {
   const wingGeo = new THREE.ShapeGeometry(wingShape, 6);
   wingGeo.rotateX(-Math.PI / 2);
   const flyMat = mat(0x5b77e6, CLS.butterfly, { side: THREE.DoubleSide });
-  const flies = Array.from({ length: 4 }, (_, i) => {
+  flyMat.color.set(S.color.butterfly);
+  const flies = Array.from({ length: 8 }, (_, i) => {
     const g = new THREE.Group(), L = new THREE.Mesh(wingGeo, flyMat), Rw = new THREE.Mesh(wingGeo, flyMat);
     Rw.scale.x = -1;
     g.add(L, Rw);
@@ -236,7 +254,7 @@ export async function startWorldTree(host: HTMLElement, o: Opts) {
   function placeFlies(T: number, dt: number, time: number) {
     const on = T > TL.fly;
     flies.forEach((f, i) => {
-      f.g.visible = on;
+      f.g.visible = on && i < S.flies;
       if (!on) return;
       const arrive = ease((T - TL.fly - i * 0.6) / 3); // 멀리서 날아와 제 궤도로
       f.a += f.w * dt;
@@ -265,8 +283,8 @@ export async function startWorldTree(host: HTMLElement, o: Opts) {
   const treeHalfW = Math.max(...segs.map((x) => Math.hypot(x.b.x, x.b.z)), ...blossoms.map((x) => Math.hypot(x.p.x, x.p.z))) + 0.6;
   /** 밑동(씨앗)은 땅 띠의 세로 한가운데·가로 baseX, 나무 꼭대기는 소개 카드 바로 아래에 오게 카메라를 맞춘다. 땅 띠 윗선(0~1)을 알려 준다. */
   function frameCamera(portrait: boolean) {
-    const h0 = portrait ? 7 : 5, topNdc = 1 - 2 * Math.min(0.6, Math.max(0.04, o.topLimit?.() ?? 0.04));
-    const wantX = 2 * (o.baseX ?? 0.5) - 1, cardX = 2 * (o.cardRight?.() ?? 0) - 1;
+    const h0 = portrait ? 7 : 5, topNdc = 1 - 2 * Math.min(0.6, Math.max(S.tree.top, o.topLimit?.() ?? S.tree.top));
+    const wantX = 2 * S.tree.x - 1, cardX = 2 * (o.cardRight?.() ?? 0) - 1;
     const halfAllowed = Math.max(0.2, Math.min(wantX - cardX - 0.02, 0.96 - wantX)); // 카드와 오른쪽 끝 사이에 들어갈 나무 반폭(NDC)
     let top = 0;
     const aim = (dist: number) => {
@@ -297,21 +315,23 @@ export async function startWorldTree(host: HTMLElement, o: Opts) {
       camera.updateMatrixWorld();
       if (V(0, 0, 0).project(camera).x > wantX) pl = mid; else ph = mid;
     }
+    scene.fog = S.depth.fog > 0.01 ? fog : null;
     fog.near = hi - treeHalfW * 0.2;
-    fog.far = hi + treeHalfW * 2.6;
+    fog.far = hi + (treeHalfW * 2.6) / Math.max(0.05, S.depth.fog); // 클수록 먼 쪽이 더 옅다
     o.onLayout?.((1 - top) / 2);
     // 달은 화면 오른쪽 위, 나무 뒤 먼 곳에
-    const dir = V(0.66, 0.7, 0.5).unproject(camera).sub(camera.position).normalize();
+    const dir = V(S.moon.x, S.moon.y, 0.5).unproject(camera).sub(camera.position).normalize();
     moon.position.copy(camera.position).addScaledVector(dir, hi * 2.2);
     moon.lookAt(camera.position);
-    moon.scale.setScalar(hi / 40);
+    moon.scale.setScalar((hi / 40) * S.moon.size);
+    moon.visible = S.moon.show;
   }
 
   let cols = 1, rows = 1, quality = 0; // quality가 오르면 글자 칸을 키워 그릴 양을 줄인다(느린 컴퓨터 대비)
   function resize() {
     const w = Math.max(200, host.clientWidth), hgt = Math.max(200, host.clientHeight);
     renderer.setSize(w, hgt, false);
-    const cell = (w < 640 ? 3.4 : 3.8) + quality * 1.2; // 글자 칸 너비(px). 높이는 너비의 1.75배
+    const cell = (w < 640 ? S.tree.glyph * 0.9 : S.tree.glyph) + quality * 1.2; // 글자 칸 너비(px). 높이는 너비의 1.75배
     cols = Math.floor(w / cell);
     rows = Math.floor(hgt / (cell * 1.75));
     pass.uniforms.uGrid.value.set(cols, rows);
@@ -334,9 +354,9 @@ export async function startWorldTree(host: HTMLElement, o: Opts) {
       T += dt;
       // 90도 돌고(약 2.4초, 부드럽게 출발·정지) 잠깐 멈춘다(1.6초). 다 자란 뒤에는 더 천천히, 더 오래 멈춘다.
       turnClock += dt;
-      const move = T < TL.done ? 2.4 : 3.4, hold = T < TL.done ? 1.6 : 2.6, cyc = move + hold;
+      const k = T < TL.done ? 0.7 : 1, move = S.turn.moveSec * k, hold = S.turn.holdSec * k, cyc = move + hold;
       const n = Math.floor(turnClock / cyc), u = Math.min(1, (turnClock - n * cyc) / move);
-      angle = 0.6 + (n + u * u * (3 - 2 * u)) * (Math.PI / 2);
+      angle = 0.6 + (n + u * u * (3 - 2 * u)) * ((S.turn.stepDeg * Math.PI) / 180);
     }
     const time = now / 1000;
     world.rotation.y = angle;
@@ -372,6 +392,17 @@ export async function startWorldTree(host: HTMLElement, o: Opts) {
   ro.observe(host);
 
   return {
+    /** 편집 모드에서 바뀐 값을 바로 반영한다 */
+    apply(next: SeedSettings) {
+      const prev = S;
+      S = next;
+      if (next.color.ground !== prev.color.ground) { paintGround(next.color.ground); groundTex.needsUpdate = true; }
+      if (next.color.blossom !== prev.color.blossom) paintFlowers(next.color.blossom);
+      woodMat.color.set(next.color.wood);
+      flyMat.color.set(next.color.butterfly);
+      resize();
+      if (!running || o.reduced) requestAnimationFrame(frame);
+    },
     dispose() {
       stopLoop();
       io.disconnect();
