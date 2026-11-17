@@ -1,9 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { HISTORY_CARDS } from "@/lib/mock";
 import { buildDevMessages, toPlainText, PART_LABEL, type DevMessage } from "@/lib/devInsights";
 import { Button, Chip, Panel } from "@/components/ui";
 import type { Card } from "@/lib/types";
@@ -12,7 +11,21 @@ export default function InsightsPage() {
   const s = useStore();
   const [copied, setCopied] = useState<string | null>(null);
 
-  const cards = useMemo(() => [...HISTORY_CARDS, ...s.allTodayCards()], [s]);
+  const [past, setPast] = useState<Card[]>([]);
+
+  // 실제 카드만: 오늘 카드 + Supabase `cards`의 최근 30일(가짜 카드로 채우지 않는다)
+  useEffect(() => {
+    fetch("/api/cards/recent", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d: { cards?: Card[] }) => setPast(d.cards ?? []))
+      .catch(() => setPast([]));
+  }, []);
+
+  const cards = useMemo(() => {
+    const today = s.allTodayCards();
+    const ids = new Set(today.map((c) => c.card_id));
+    return [...today, ...past.filter((c) => !ids.has(c.card_id))];
+  }, [s, past]);
   const msgs = useMemo(() => buildDevMessages({ cards, events: s.events, posts: s.posts }), [cards, s.events, s.posts]);
 
   const owners: DevMessage["to"][] = ["도하", "승원"];
@@ -48,7 +61,10 @@ export default function InsightsPage() {
               </div>
 
               {list.length === 0 ? (
-                <p className="py-10 text-center text-sm text-gray-400">아직 제안할 만큼 데이터가 쌓이지 않았어요</p>
+                <div className="py-10 text-center">
+                  <p className="font-bold text-gray-700">아직 데이터 없음</p>
+                  <p className="mt-1 text-sm text-gray-400">제안할 만큼 카드·선택·성과가 쌓이면 여기에 나와요</p>
+                </div>
               ) : (
                 <ul className="space-y-4">
                   {list.map((m) => (

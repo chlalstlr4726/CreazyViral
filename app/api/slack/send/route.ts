@@ -3,7 +3,7 @@ import type { Card } from "@/lib/types";
 import { buildCardBlocks, postToSlack } from "@/lib/slack";
 
 // 화면에서 보고 있는 오늘의 카드를 받아 Slack으로 보낸다.
-// (지금은 카드가 브라우저 샘플 데이터라 요청 본문으로 받음. 승원 API 연결 후에는 서버가 직접 조회)
+// (카드는 요청 본문으로 받는다. 화면은 카드 DB에서 읽은 실제 카드만 보낸다. 승원 API 연결 후에는 서버가 직접 조회)
 // 주의: 로그인/권한이 아직 없는 내부용 엔드포인트라 배포 전에 접근 제한을 붙여야 해요.
 export async function POST(req: Request) {
   let body: { cards?: Card[] };

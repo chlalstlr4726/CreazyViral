@@ -1,9 +1,9 @@
-import { VIRAL_SEED, type ViralReel } from "./viralSeed";
+import type { ViralReel } from "./viralTypes";
 import { sb, sbConfigured } from "./sb";
 import { readLatestDailyRecs } from "./dailyRecs";
 
 export type { ViralReel };
-export type ViralSource = "daily_recs" | "supabase" | "sample";
+export type ViralSource = "daily_recs" | "supabase" | "none";
 
 type Row = Record<string, unknown>;
 const num = (v: unknown) => Number(v ?? 0) || 0;
@@ -11,10 +11,10 @@ const clip = (s: unknown, n: number) => String(s ?? "").replace(/\s+/g, " ").tri
 
 /**
  * 수집/분석된 바이럴 릴스. Supabase `reels`(수집 파이프라인이 분석해 올린 표) 중 verdict가 '터짐'인 최근 30일 영상.
- * 설정이 없거나 조회에 실패하면 코드에 들어 있는 수집 샘플로 대신한다.
+ * 설정이 없거나 조회에 실패하면 빈 목록(가짜 데이터로 채우지 않는다).
  */
 export async function loadViral(): Promise<{ rows: ViralReel[]; source: ViralSource }> {
-  if (!sbConfigured()) return { rows: VIRAL_SEED, source: "sample" };
+  if (!sbConfigured()) return { rows: [], source: "none" };
   try {
     const since = new Date(Date.now() - 30 * 86400_000).toISOString();
     const data = await sb<Row[]>("reels", {
@@ -46,9 +46,9 @@ export async function loadViral(): Promise<{ rows: ViralReel[]; source: ViralSou
         reason: clip(r.verdict_reason, 120),
         paid: typeof r.paid_partnership === "boolean" ? r.paid_partnership : null,
       }));
-    return rows.length ? { rows, source: "supabase" } : { rows: VIRAL_SEED, source: "sample" };
+    return rows.length ? { rows, source: "supabase" } : { rows: [], source: "none" };
   } catch {
-    return { rows: VIRAL_SEED, source: "sample" };
+    return { rows: [], source: "none" };
   }
 }
 
@@ -65,8 +65,8 @@ export function topViral(rows: ViralReel[], days: number, limit = 5): ViralReel[
 
 /**
  * 홈 Top 5와 AI 스토리보드가 쓰는 목록.
- * 1순위: `daily_recs`(도하가 매일 승인한 추천)의 가장 최근 추천일 상위 limit편(rank 순). 이때 days는 쓰지 않는다.
- * 2순위: 표가 비었거나 읽기에 실패하면 예전처럼 `reels` '터짐' 최근 days일 조회수 순(없으면 샘플).
+ * 1순위: `daily_recs`(매일 아침 자동으로 고른 피드 상위 10편)의 가장 최근 추천일 상위 limit편(rank 순). 이때 days는 쓰지 않는다.
+ * 2순위: 표가 비었거나 읽기에 실패하면 예전처럼 `reels` '터짐' 최근 days일 조회수 순(없으면 빈 목록).
  */
 export async function loadHomeTop(days: number, limit = 5): Promise<{ items: ViralReel[]; source: ViralSource; recDate?: string }> {
   if (sbConfigured()) {

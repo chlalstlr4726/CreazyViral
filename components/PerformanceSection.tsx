@@ -5,7 +5,7 @@ import clsx from "clsx";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ArrowDownRight, ArrowUpRight, Info } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { ACCOUNTS } from "@/lib/mock";
+import { ACCOUNT_BY_ID, type AccountId } from "@/lib/accounts";
 import { dailySeries, formatStats, kpis, MIN_N_FOR_FORMAT } from "@/lib/analytics";
 import { addDays, compact, mult, shortDate, ymd } from "@/lib/format";
 import { Chip, Panel, SectionTitle, TypeBadge } from "./ui";
@@ -39,8 +39,26 @@ export function PerformanceSection({ accountId }: { accountId?: string } = {}) {
     [scoped],
   );
   const maxMult = Math.max(2.5, ...formats.map((f) => f.medianMultiple));
-  const accOf = (id: string) => ACCOUNTS.find((a) => a.id === id)!;
+  const accOf = (id: string) => ACCOUNT_BY_ID[id as AccountId];
   const rows = showAll ? cur : cur.slice(0, 10);
+
+  if (scoped.length === 0) {
+    const connected = acc !== "all" && postSource(acc as never) === "instagram";
+    return (
+      <div className="mt-14">
+        <SectionTitle
+          title="지금까지 올린 콘텐츠와 성과"
+          desc="연결된 인스타 계정의 게시물을 모아 보여줘요. 성과는 ‘같은 계정의 평소 조회수’와 비교한 값이에요."
+        />
+        <Panel className="p-8 text-center">
+          <p className="text-lg font-bold">아직 데이터 없음</p>
+          <p className="mt-1.5 text-sm leading-relaxed text-gray-500">
+            {connected ? "연결된 계정에 아직 수집된 게시물이 없어요. 성과가 모이면 표와 그래프가 나타나요." : "인스타 계정을 연결하면 게시물 성과가 여기에 모여요."}
+          </p>
+        </Panel>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-14">
@@ -54,7 +72,7 @@ export function PerformanceSection({ accountId }: { accountId?: string } = {}) {
           <span className={clsx("rounded-md px-2.5 py-1 text-[13px] font-semibold", postSource(accountId as never) === "instagram" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700")}>
             {postSource(accountId as never) === "instagram"
               ? `인스타 공식 API 실제 데이터${lastCaptured ? `, 마지막 수집 ${new Date(lastCaptured).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" })}` : ""}`
-              : "샘플 데이터 (계정 연결 전)"}
+              : "계정 연결 전 (데이터 없음)"}
           </span>
         )}
         <div className="ml-auto inline-flex rounded-md border border-gray-200 bg-white p-0.5">

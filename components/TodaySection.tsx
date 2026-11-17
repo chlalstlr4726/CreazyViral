@@ -7,8 +7,7 @@ import type { CardType } from "@/lib/types";
 import { ACCOUNT_BY_ID, type AccountId } from "@/lib/accounts";
 import { useStore } from "@/lib/store";
 import { buildDirection } from "@/lib/recommend";
-import { koDate } from "@/lib/format";
-import { TODAY } from "@/lib/mock";
+import { kstToday, koDate } from "@/lib/format";
 import { CardTile, PassDialog } from "./CardTile";
 import { Button, Chip, SectionTitle, TypeBadge } from "./ui";
 
@@ -40,16 +39,17 @@ export function TodaySection({ accountId }: { accountId: AccountId }) {
 
   const direction = useMemo(() => buildDirection(s.posts.filter((p) => p.card_id && p.account_id === accountId)), [s.posts, accountId]);
   const types: CardType[] = ["dummy", "service"];
+  const hasCards = types.some((t) => s.todayCard(t, accountId));
 
   return (
     <div>
       <SectionTitle
         title="오늘 만들 콘텐츠"
-        desc={`${koDate(TODAY)} · @${account.handle} 맞춤 추천`}
+        desc={`${koDate(kstToday())} · @${account.handle} 맞춤 추천`}
         right={
           <div className="flex items-center gap-3">
             {sendMsg && <span className="text-sm text-gray-500">{sendMsg}</span>}
-            <Button variant="secondary" size="sm" onClick={sendToSlack} disabled={sending}>
+            <Button variant="secondary" size="sm" onClick={sendToSlack} disabled={sending || !hasCards} title={hasCards ? undefined : "보낼 카드가 아직 없어요"}>
               {sending ? "보내는 중…" : "슬랙으로 테스트 전송"}
             </Button>
           </div>
@@ -121,8 +121,8 @@ function EmptyCard({ type }: { type: CardType }) {
   return (
     <div className="flex min-h-72 flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
       <TypeBadge type={type} />
-      <p className="mt-4 text-lg font-bold">오늘의 카드가 아직 없어요</p>
-      <p className="mt-1.5 text-sm leading-relaxed text-gray-500">매일 아침 카드 API가 이 계정의 카드를 만들어 저장하면 여기에 나타나요.</p>
+      <p className="mt-4 text-lg font-bold">아직 데이터 없음</p>
+      <p className="mt-1.5 text-sm leading-relaxed text-gray-500">오늘의 카드가 아직 없어요. 매일 아침 카드 API가 이 계정의 카드를 만들어 저장하면 여기에 나타나요.</p>
     </div>
   );
 }

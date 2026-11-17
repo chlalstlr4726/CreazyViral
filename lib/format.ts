@@ -1,3 +1,8 @@
+/** 한국 시간(KST) 기준 오늘 날짜 YYYY-MM-DD. 서버는 UTC로 돌기 때문에 직접 계산한다. */
+export function kstToday(now = new Date()) {
+  return new Date(now.getTime() + 9 * 3600_000).toISOString().slice(0, 10);
+}
+
 export const ymd = (d: Date) => {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");

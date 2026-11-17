@@ -64,6 +64,19 @@ export async function fetchTodayCards(date: string): Promise<Card[]> {
   return [...best.values()].sort((a, b) => (a.account_id ?? "").localeCompare(b.account_id ?? "") || a.type.localeCompare(b.type));
 }
 
+/** from(포함, KST 날짜)부터의 카드. 날짜·계정·유형마다 재생성 회차가 가장 큰 것 하나. 최근 날짜 먼저 */
+export async function fetchCardsSince(from: string): Promise<Card[]> {
+  const rows = await query({ select: "*", date: `gte.${from}`, order: "date.desc", limit: "500" });
+  const best = new Map<string, Card>();
+  for (const row of rows) {
+    const c = normalizeCard(row);
+    const k = `${c.date}|${c.account_id ?? ""}|${c.type}`;
+    const cur = best.get(k);
+    if (!cur || regenIndex(c.card_id) > regenIndex(cur.card_id)) best.set(k, c);
+  }
+  return [...best.values()].sort((a, b) => b.date.localeCompare(a.date) || (a.account_id ?? "").localeCompare(b.account_id ?? "") || a.type.localeCompare(b.type));
+}
+
 export async function fetchCardById(id: string): Promise<Card | null> {
   if (!CARD_ID.test(id)) return null;
   const rows = await query({ select: "*", card_id: `eq.${id}` });
