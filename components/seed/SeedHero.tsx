@@ -17,7 +17,8 @@ type Card = SeedSettings["card"];
  * 첫 화면: 3D 아스키 매화나무(아래 층) + 제목 바로 아래 평면 소개 카드(위 층). 페이지를 열고 1초 뒤 저절로 자란다.
  * 편집 모드에서는 카드를 손잡이로 끌어 옮기고, 카드 글을 눌러 바로 고칠 수 있다.
  */
-export function SeedHero({ settings, editing, onCard, onExplain, onGrown }: {
+export function SeedHero({ capture = false, settings, editing, onCard, onExplain, onGrown }: {
+  capture?: boolean;
   settings: SeedSettings;
   editing: boolean;
   onCard: (patch: Partial<Card>) => void;
@@ -40,6 +41,7 @@ export function SeedHero({ settings, editing, onCard, onExplain, onGrown }: {
   };
 
   useEffect(() => {
+    if (capture) return; // 피그마로 옮길 때는 3D 나무를 그리지 않는다
     let alive = true;
     let dispose: (() => void) | undefined;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -63,7 +65,7 @@ export function SeedHero({ settings, editing, onCard, onExplain, onGrown }: {
       tree.current = null;
       dispose?.();
     };
-  }, []);
+  }, [capture]);
 
   // 편집 모드에서 값이 바뀌면 장면에 바로 반영
   useEffect(() => { tree.current?.apply(settings); }, [settings]);

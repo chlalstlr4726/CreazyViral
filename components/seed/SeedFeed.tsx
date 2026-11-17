@@ -15,7 +15,7 @@ const firstSentence = (s: string) => {
 const lines = (s: string) => s.split("\n").map((x) => x.trim()).filter(Boolean);
 
 /** 땅속 구역: 화면에 고정된 뿌리 층 위로, 릴스가 인스타처럼 한 편씩 화면 가득 넘어간다. */
-export function SeedFeed({ items, grown }: { items: FeedItem[]; grown: boolean }) {
+export function SeedFeed({ items, grown, capture = false }: { items: FeedItem[]; grown: boolean; capture?: boolean }) {
   const wrap = useRef<HTMLDivElement>(null);
   const cv = useRef<HTMLCanvasElement>(null);
   const layer = useRef<ReturnType<typeof createRootLayer> | null>(null);
@@ -51,18 +51,19 @@ export function SeedFeed({ items, grown }: { items: FeedItem[]; grown: boolean }
 
   useEffect(() => {
     const it = items[active];
-    if (it) layer.current?.show(firstSentence(it.hookStructure));
-  }, [active, items]);
+    if (it && !capture) layer.current?.show(firstSentence(it.hookStructure));
+  }, [active, items, capture]);
 
   return (
     <div ref={wrap} className="seed-under">
       <div className="seed-rootlayer" aria-hidden="true"><canvas ref={cv} /></div>
       {items.map((it, i) => (
         <section key={it.shortcode} className="seed-reel" data-i={i} aria-label={`${i + 1}번째 릴스, @${it.username}`}>
+          {capture && <p className="seed-hook-still">{firstSentence(it.hookStructure)}</p>}
           <div className="seed-reel-grid">
             <div className="seed-video">
-              {Math.abs(i - active) <= 1 ? <FeedMedia item={it} active={i === active} muted={muted} /> : <div className="seed-video-ph" />}
-              {it.videoUrl && i === active && (
+              {capture ? <div className="seed-video-ph seed-video-label">릴스 영상 자리 · @{it.username}</div> : Math.abs(i - active) <= 1 ? <FeedMedia item={it} active={i === active} muted={muted} /> : <div className="seed-video-ph" />}
+              {!capture && it.videoUrl && i === active && (
                 <button type="button" className="seed-sound" onClick={() => setMuted((m) => !m)}>{muted ? "소리 켜기" : "소리 끄기"}</button>
               )}
             </div>
