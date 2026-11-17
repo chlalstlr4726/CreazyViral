@@ -5,28 +5,64 @@ import { Check, Copy } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { buildDevMessages, toPlainText, PART_LABEL, type DevMessage } from "@/lib/devInsights";
 import { Button, Chip, Panel } from "@/components/ui";
+import { kstToday, koDate } from "@/lib/format";
 import type { Card } from "@/lib/types";
 
 export default function InsightsPage() {
   const s = useStore();
   const [copied, setCopied] = useState<string | null>(null);
 
-  const [past, setPast] = useState<Card[]>([]);
+  const [history, setHistory] = useState<{ source: "loading" | "supabase" | "unconfigured" | "error"; cards: Card[] }>({
+    source: "loading",
+    cards: [],
+  });
 
-  // 실제 카드만: 오늘 카드 + Supabase `cards`의 최근 30일(가짜 카드로 채우지 않는다)
   useEffect(() => {
-    fetch("/api/cards/recent", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((d: { cards?: Card[] }) => setPast(d.cards ?? []))
-      .catch(() => setPast([]));
+    const abort = new AbortController();
+    fetch("/api/cards/recent", { cache: "no-store", signal: abort.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("cards_fetch_failed");
+        const data: { source: "supabase" | "unconfigured"; cards: Card[] } = await response.json();
+        setHistory(data);
+      })
+      .catch(() => {
+        if (!abort.signal.aborted) setHistory({ source: "error", cards: [] });
+      });
+    return () => abort.abort();
   }, []);
 
-  const cards = useMemo(() => {
-    const today = s.allTodayCards();
-    const ids = new Set(today.map((c) => c.card_id));
-    return [...today, ...past.filter((c) => !ids.has(c.card_id))];
-  }, [s, past]);
-  const msgs = useMemo(() => buildDevMessages({ cards, events: s.events, posts: s.posts }), [cards, s.events, s.posts]);
+  const feedback = useMemo(() => {
+    const ids = new Set(history.cards.map((card) => card.card_id));
+    return s.events.filter((event) => ids.has(event.card_id));
+  }, [history.cards, s.events]);
+
+  const msgs = useMemo(() => {
+    if (history.source !== "supabase" || !s.ready) return [];
+    const messages = buildDevMessages({ cards: history.cards, events: feedback, posts: s.posts });
+    const today = kstToday();
+    if (!history.cards.some((card) => card.date === today)) {
+      const latest = history.cards[0];
+      messages.unshift({
+        to: "승원",
+        priority: "높음",
+        title: "오늘 카드 생성 및 저장 상태 확인",
+        suggestion: "오늘(KST) 카드 생성 작업의 실행 결과를 확인해 주세요. 생성된 카드는 계정 ID와 날짜를 포함해 대시보드가 읽는 Supabase cards 테이블에 저장해 주세요.",
+        evidence: [
+          `${koDate(today)} 카드 0장`,
+          latest ? `최근 30일 마지막 카드 날짜 ${koDate(latest.date)}` : "최근 30일 저장된 카드 0장",
+        ],
+      });
+    }
+    return messages;
+  }, [history, feedback, s.posts, s.ready]);
+
+  const emptyMessage = history.source === "error"
+    ? "카드 DB에서 이력을 불러오지 못했어요."
+    : history.source === "unconfigured"
+      ? "카드 DB 연결 설정이 필요해요."
+      : history.source === "loading" || !s.ready
+        ? "카드와 피드백을 불러오는 중이에요."
+        : `최근 30일 카드 ${history.cards.length}장 · 이 브라우저의 관련 피드백 ${feedback.length}건 · 수집된 게시물 ${s.posts.length}편`;
 
   const owners: DevMessage["to"][] = ["도하", "승원"];
 
@@ -62,8 +98,8 @@ export default function InsightsPage() {
 
               {list.length === 0 ? (
                 <div className="py-10 text-center">
-                  <p className="font-bold text-gray-700">아직 데이터 없음</p>
-                  <p className="mt-1 text-sm text-gray-400">제안할 만큼 카드·선택·성과가 쌓이면 여기에 나와요</p>
+                  {history.source === "supabase" && s.ready && <p className="font-bold text-gray-700">제안할 만큼 표본이 쌓이면 여기에 표시돼요</p>}
+                  <p className="mt-1 text-sm text-gray-500">{emptyMessage}</p>
                 </div>
               ) : (
                 <ul className="space-y-4">
