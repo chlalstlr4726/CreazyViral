@@ -52,9 +52,9 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
               </div>
               <Chip tone={connected ? "green" : "gray"}>{connected ? "연결됨" : expired || revoked ? "재연결 필요" : "연결 대기"}</Chip>
               {config && tokens !== null ? (
-                <a href={`${config.origin}/api/instagram/connect?account=${account.id}`} className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-gray-50"><Link2 size={16} />{label}</a>
+                <a href={`${config.origin}/api/instagram/connect?account=${account.id}`} className="press inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-gray-50"><Link2 size={16} />{label}</a>
               ) : (
-                <button type="button" disabled className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-400"><Link2 size={16} />{label}</button>
+                <button type="button" disabled className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-500"><Link2 size={16} />{label}</button>
               )}
             </Panel>
           );

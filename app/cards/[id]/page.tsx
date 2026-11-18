@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { AnimatePresence } from "motion/react";
 import { ArrowLeft, Check, Copy, ExternalLink, Music, RefreshCw } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { koDate } from "@/lib/format";
-import { TODAY } from "@/lib/mock";
+import { kstToday } from "@/lib/format";
 import type { AccountId } from "@/lib/accounts";
 import { Button, Chip, Difficulty, Panel, TypeBadge } from "@/components/ui";
 import { PassDialog } from "@/components/CardTile";
@@ -22,6 +23,8 @@ export default function CardDetail() {
   const [missing, setMissing] = useState(false);
   const decoded = decodeURIComponent(id);
   const card = s.cardById(decoded);
+  // 홈으로 돌아갈 때 이 카드의 계정 탭을 그대로 연다(계정이 없으면 홈 기본 탭)
+  const home = card?.account_id ? `/?a=${encodeURIComponent(card.account_id)}` : "/";
 
   // 오늘 카드가 아닌 지난 카드(예: 슬랙에 남은 어제 링크)는 DB에서 따로 불러온다
   useEffect(() => {
@@ -39,7 +42,7 @@ export default function CardDetail() {
     return (
       <div className="py-24 text-center">
         <p className="text-gray-500">카드를 찾을 수 없어요.</p>
-        <Link href="/" className="mt-3 inline-block text-blue-600">
+        <Link href={home} className="mt-3 inline-block text-blue-600">
           홈으로
         </Link>
       </div>
@@ -47,13 +50,13 @@ export default function CardDetail() {
   }
 
   const status = s.statusOf(card.card_id);
-  const isToday = card.date === TODAY;
+  const isToday = card.date === kstToday();
   const isCurrent = isToday && !!card.account_id && s.todayCard(card.type, card.account_id as AccountId)?.card_id === card.card_id;
   const total = card.storyboard.at(-1)?.end_s ?? 0;
 
   return (
     <div>
-      <Link href="/" className="mb-5 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900">
+      <Link href={home} className="mb-5 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900">
         <ArrowLeft size={15} /> 홈
       </Link>
 
@@ -62,7 +65,7 @@ export default function CardDetail() {
           <div className="flex items-center gap-2">
             <TypeBadge type={card.type} />
             <Chip>{card.format}</Chip>
-            <span className="text-sm text-gray-400">{koDate(card.date)}</span>
+            <span className="text-sm text-gray-500">{koDate(card.date)}</span>
           </div>
           <h1 className="mt-3 text-3xl font-bold tracking-tight">{card.title}</h1>
           <p className="mt-2 text-gray-500">{card.rationale}</p>
@@ -74,42 +77,44 @@ export default function CardDetail() {
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
-        <div className="col-span-2 space-y-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
           <Panel className="overflow-hidden">
             <div className="flex items-center justify-between px-6 pt-5 pb-3">
               <h2 className="font-bold">스토리보드</h2>
-              <span className="num text-sm text-gray-400">
+              <span className="num text-sm text-gray-500">
                 {card.storyboard.length}컷, {total}초
               </span>
             </div>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-y border-gray-100 bg-gray-50 text-left text-xs text-gray-500">
-                  <th className="w-16 px-6 py-2.5 font-medium">컷</th>
-                  <th className="w-24 py-2.5 font-medium">시간</th>
-                  <th className="py-2.5 font-medium">화면 / 촬영</th>
-                  <th className="py-2.5 pr-6 font-medium">자막 / 멘트</th>
-                </tr>
-              </thead>
-              <tbody>
-                {card.storyboard.map((c) => (
-                  <tr key={c.cut} className="border-b border-gray-50 align-top last:border-0">
-                    <td className="px-6 py-4">
-                      <span className="grid h-7 w-7 place-items-center rounded-md bg-blue-50 text-[13px] font-bold text-blue-600">{c.cut}</span>
-                    </td>
-                    <td className="num py-4 text-gray-500">
-                      {c.start_s}–{c.end_s}s
-                    </td>
-                    <td className="py-4 pr-4">
-                      {c.visual}
-                      {c.note && <div className="mt-1 text-xs text-amber-600">💡 {c.note}</div>}
-                    </td>
-                    <td className="py-4 pr-6 font-semibold">{c.caption}</td>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[40rem] text-sm">
+                <thead>
+                  <tr className="border-y border-gray-100 bg-gray-50 text-left text-xs text-gray-500">
+                    <th className="w-16 px-6 py-2.5 font-medium">컷</th>
+                    <th className="w-24 py-2.5 font-medium">시간</th>
+                    <th className="py-2.5 font-medium">화면 / 촬영</th>
+                    <th className="py-2.5 pr-6 font-medium">자막 / 멘트</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {card.storyboard.map((c) => (
+                    <tr key={c.cut} className="border-b border-gray-50 align-top last:border-0">
+                      <td className="px-6 py-4">
+                        <span className="grid h-7 w-7 place-items-center rounded-md bg-blue-50 text-[0.8125rem] font-bold text-blue-600">{c.cut}</span>
+                      </td>
+                      <td className="num py-4 text-gray-500">
+                        {c.start_s}–{c.end_s}s
+                      </td>
+                      <td className="py-4 pr-4">
+                        {c.visual}
+                        {c.note && <div className="mt-1 text-xs text-amber-600">💡 {c.note}</div>}
+                      </td>
+                      <td className="py-4 pr-6 font-semibold">{c.caption}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </Panel>
 
           <Panel className="p-6">
@@ -127,7 +132,7 @@ export default function CardDetail() {
                 {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? "복사됨" : "복사"}
               </Button>
             </div>
-            <pre className="max-h-72 overflow-auto rounded-lg bg-gray-50 p-4 text-[13px] leading-relaxed whitespace-pre-wrap text-gray-700">{card.prompt}</pre>
+            <pre className="max-h-72 overflow-auto rounded-lg bg-gray-50 p-4 text-[0.8125rem] leading-relaxed whitespace-pre-wrap text-gray-700">{card.prompt}</pre>
           </Panel>
         </div>
 
@@ -200,7 +205,7 @@ export default function CardDetail() {
             <ul className="space-y-2">
               {card.references.map((r) => (
                 <li key={r.url}>
-                  <a href={r.url} target="_blank" rel="noreferrer" className="flex items-center justify-between rounded-md border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50">
+                  <a href={r.url} target="_blank" rel="noreferrer" className="press flex items-center justify-between rounded-md border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50">
                     {ROLE[r.role]}
                     <ExternalLink size={14} className="text-gray-400" />
                   </a>
@@ -211,15 +216,17 @@ export default function CardDetail() {
         </div>
       </div>
 
-      {passOpen && (
-        <PassDialog
-          onClose={() => setPassOpen(false)}
-          onConfirm={(r) => {
-            s.pass(card.card_id, r);
-            setPassOpen(false);
-          }}
-        />
-      )}
+      <AnimatePresence>
+        {passOpen && (
+          <PassDialog
+            onClose={() => setPassOpen(false)}
+            onConfirm={(r) => {
+              s.pass(card.card_id, r);
+              setPassOpen(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

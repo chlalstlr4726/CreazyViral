@@ -7,10 +7,10 @@ export const dynamic = "force-dynamic";
 type Row = Record<string, unknown>;
 const n = (v: unknown) => Number(v ?? 0) || 0;
 
-// 대시보드가 읽는 게시물 성과. Supabase가 없으면 source "sample"(화면이 샘플로 대체).
+// 대시보드가 읽는 게시물 성과. Supabase가 없으면 source "unconfigured"(화면은 데이터 없음으로 보인다).
 // 계정이 연결되지 않았거나 아직 수집 전이면 accounts[id].connected 가 false.
 export async function GET() {
-  if (!sbConfigured()) return NextResponse.json({ source: "sample" });
+  if (!sbConfigured()) return NextResponse.json({ source: "unconfigured" });
   try {
     const since = new Date(Date.now() - 120 * 86400_000).toISOString();
     const [accts, scored] = await Promise.all([

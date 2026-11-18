@@ -1,5 +1,6 @@
 // 서버 전용: Supabase `cards` 테이블에서 카드를 읽는다 (승원 카드 API가 저장한 카드).
 // SUPABASE_SECRET_KEY는 서버 환경변수로만 쓰고 브라우저로 내려보내지 않는다.
+import { ACCOUNT_PROFILES } from "./accounts";
 import type { Card } from "./types";
 
 // 예: 2026-11-13-dummy-0 (예전 형식) 또는 2026-11-13-dummy-moodiee-0 (계정 포함)
@@ -30,9 +31,14 @@ const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
 export function normalizeCard(row: Record<string, unknown>): Card {
   const audio = (row.audio ?? {}) as { name?: unknown; commercial_ok?: unknown };
   const d = Number(row.difficulty);
+  const cardId = String(row.card_id);
+  const accountFromId = CARD_ID.test(cardId) ? cardId.split("-").at(-2) : undefined;
+  const account = ACCOUNT_PROFILES.find((profile) => profile.id === (row.account_id || accountFromId));
   return {
-    card_id: String(row.card_id),
-    account_id: row.account_id ? String(row.account_id) : undefined,
+    card_id: cardId,
+    account_id: account?.id ?? (row.account_id ? String(row.account_id) : undefined),
+    ...(row.score && typeof row.score === "object" && !Array.isArray(row.score) && Object.keys(row.score).length > 0
+      ? { score: row.score as Record<string, unknown> } : {}),
     date: String(row.date),
     type: row.type === "service" ? "service" : "dummy",
     title: String(row.title ?? ""),
@@ -62,6 +68,19 @@ export async function fetchTodayCards(date: string): Promise<Card[]> {
     if (!cur || regenIndex(c.card_id) > regenIndex(cur.card_id)) best.set(k, c);
   }
   return [...best.values()].sort((a, b) => (a.account_id ?? "").localeCompare(b.account_id ?? "") || a.type.localeCompare(b.type));
+}
+
+/** from(포함, KST 날짜)부터의 카드. 날짜·계정·유형마다 재생성 회차가 가장 큰 것 하나. 최근 날짜 먼저 */
+export async function fetchCardsSince(from: string): Promise<Card[]> {
+  const rows = await query({ select: "*", date: `gte.${from}`, order: "date.desc", limit: "500" });
+  const best = new Map<string, Card>();
+  for (const row of rows) {
+    const c = normalizeCard(row);
+    const k = `${c.date}|${c.account_id ?? ""}|${c.type}`;
+    const cur = best.get(k);
+    if (!cur || regenIndex(c.card_id) > regenIndex(cur.card_id)) best.set(k, c);
+  }
+  return [...best.values()].sort((a, b) => b.date.localeCompare(a.date) || (a.account_id ?? "").localeCompare(b.account_id ?? "") || a.type.localeCompare(b.type));
 }
 
 export async function fetchCardById(id: string): Promise<Card | null> {

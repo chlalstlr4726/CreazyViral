@@ -3,6 +3,7 @@
 import { AccountTabs } from "@/components/AccountTabs";
 import { ReferenceSection } from "@/components/ReferenceSection";
 import { SeriesDashboard } from "@/components/SeriesDashboard";
+import { SeedTab } from "@/components/seed/SeedTab";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -11,6 +12,7 @@ const tabs = [
   { key: "today", label: "오늘 콘텐츠" },
   { key: "competitors", label: "경쟁사 분석" },
   { key: "series", label: "신규 채널 추천" },
+  { key: "seed", label: "씨앗🌱" },
 ] as const;
 
 function HomeTabs() {
@@ -24,7 +26,7 @@ function HomeTabs() {
           if (key === "today") query.delete("tab");
           else query.set("tab", key);
           return <Link key={key} href={query.size ? "/?" + query : "/"} aria-current={key === selected ? "page" : undefined}
-            className={key === selected ? "rounded-lg bg-blue-50 px-3 py-2 text-sm font-bold text-blue-700" : "rounded-lg px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100"}>{label}</Link>;
+            className={key === selected ? "press rounded-lg bg-blue-50 px-3 py-2 text-sm font-bold text-blue-700" : "press rounded-lg px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100"}>{label}</Link>;
         })}
       </nav>
       {selected === "today" && <AccountTabs />}
@@ -36,6 +38,7 @@ function HomeTabs() {
         </section>
       )}
       {selected === "series" && <SeriesDashboard />}
+      {selected === "seed" && <SeedTab />}
     </div>
   );
 }
