@@ -22,6 +22,7 @@ export interface Card {
   title: string;
   format: string; // 포맷명 — 포맷별 성과 집계의 키
   rationale: string; // 선정 근거 (도하 점수 기반)
+  score?: Record<string, unknown>;
   difficulty: 1 | 2 | 3;
   audio: { name: string; commercial_ok: boolean };
   storyboard: StoryboardCut[];

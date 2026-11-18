@@ -124,7 +124,7 @@ export function buildDevMessages(args: { cards: Card[]; events: CardEvent[]; pos
 
   // ── 상시 데이터 요청 (현재 스키마에 없는 항목) ─
   const hasScores = cards.some((c) => "score" in c);
-  if (!hasScores) {
+  if (cards.length > 0 && !hasScores) {
     out.push({
       to: "도하",
       priority: "높음",

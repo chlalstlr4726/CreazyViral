@@ -2,7 +2,6 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { Card, CardEvent, CardType, Post, PostWithScore } from "./types";
-import { HISTORY_CARDS, POSTS, SEED_EVENTS, TODAY, todayPool } from "./mock";
 import { scorePosts } from "./analytics";
 import { ACCOUNT_PROFILES, type AccountId } from "./accounts";
 
@@ -10,8 +9,8 @@ const KEY = "viral-dashboard:events:v1";
 
 export const shortcode = (url: string) => url.match(/\/(?:reel|reels|p)\/([A-Za-z0-9_-]+)/)?.[1] ?? null;
 
-/** 오늘의 카드가 어디서 왔는지: supabase = 실제 카드 DB, sample = 샘플, error = DB 연결 실패(샘플로 대체) */
-export type CardSource = "loading" | "supabase" | "sample" | "error";
+/** 오늘의 카드가 어디서 왔는지: supabase = 실제 카드 DB, unconfigured = DB 설정 없음(카드 없음), error = DB 연결 실패(카드 없음) */
+export type CardSource = "loading" | "supabase" | "unconfigured" | "error";
 
 interface Store {
   ready: boolean;
@@ -30,8 +29,8 @@ interface Store {
   regenerate: (type: CardType, account: AccountId) => void;
   linkPost: (id: string, url: string) => "matched" | "pending";
   posts: PostWithScore[];
-  /** 계정별 성과 데이터 출처: instagram = 공식 API로 수집한 실제 값, sample = 샘플 */
-  postSource: (account: AccountId) => "instagram" | "sample";
+  /** 계정별 성과 데이터 출처: instagram = 공식 API로 수집한 실제 값, none = 아직 연결 전(데이터 없음) */
+  postSource: (account: AccountId) => "instagram" | "none";
   lastCaptured: string | null;
   toast: string | null;
 }
@@ -42,12 +41,6 @@ export const useStore = () => {
   if (!v) throw new Error("StoreProvider missing");
   return v;
 };
-
-const pools = Object.fromEntries(
-  ACCOUNT_PROFILES.map((a) => [a.id, { dummy: todayPool("dummy", a.id), service: todayPool("service", a.id) }]),
-) as Record<AccountId, Record<CardType, Card[]>>;
-const cardIndex = new Map<string, Card>();
-[...HISTORY_CARDS, ...Object.values(pools).flatMap((p) => [...p.dummy, ...p.service])].forEach((c) => cardIndex.set(c.card_id, c));
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [local, setLocal] = useState<CardEvent[]>([]);
@@ -65,17 +58,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setLocalReady(true);
   }, []);
 
-  // 오늘의 카드: 서버가 Supabase `cards`에서 읽어 준다. 설정이 없으면 샘플 카드로 동작.
+  // 오늘의 카드: 서버가 Supabase `cards`에서 읽어 준다. 설정이 없거나 실패하면 카드 없음(가짜 카드로 채우지 않는다).
   useEffect(() => {
     fetch("/api/cards/today", { cache: "no-store" })
       .then((r) => r.json())
       .then((d: { source?: string; cards?: Card[] }) =>
-        setRemote(d.source === "supabase" ? { source: "supabase", cards: d.cards ?? [] } : { source: d.source === "error" ? "error" : "sample", cards: [] }),
+        setRemote(d.source === "supabase" ? { source: "supabase", cards: d.cards ?? [] } : { source: d.source === "error" ? "error" : "unconfigured", cards: [] }),
       )
       .catch(() => setRemote({ source: "error", cards: [] }));
   }, []);
 
-  // 게시물 성과: 인스타 공식 API로 수집된 값(Supabase). 연결 전이거나 설정이 없으면 샘플.
+  // 게시물 성과: 인스타 공식 API로 수집된 값(Supabase). 연결 전이거나 설정이 없으면 게시물 없음.
   useEffect(() => {
     fetch("/api/posts", { cache: "no-store" })
       .then((r) => r.json())
@@ -100,28 +93,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setTimeout(() => setToast(null), 2400);
   }, []);
 
-  const events = useMemo(() => [...SEED_EVENTS, ...local], [local]);
+  const events = local;
 
-  // DB에서 받은 카드가 같은 id의 샘플 카드보다 우선
   const cardById = useCallback(
-    (id: string) => remote.cards.find((c) => c.card_id === id) ?? extra.find((c) => c.card_id === id) ?? cardIndex.get(id),
+    (id: string) => remote.cards.find((c) => c.card_id === id) ?? extra.find((c) => c.card_id === id),
     [remote.cards, extra],
   );
 
   const addCard = useCallback((card: Card) => setExtra((prev) => (prev.some((c) => c.card_id === card.card_id) ? prev : [...prev, card])), []);
 
-  const regenCount = useCallback(
-    (type: CardType, account: AccountId) =>
-      events.filter((e) => e.action === "regenerated" && e.card_id.startsWith(`${TODAY}-${type}-${account}-`)).length,
-    [events],
-  );
-
   const todayCard = useCallback(
-    (type: CardType, account: AccountId): Card | undefined =>
-      remote.source === "supabase"
-        ? remote.cards.find((c) => c.type === type && c.account_id === account)
-        : pools[account][type][regenCount(type, account) % pools[account][type].length],
-    [remote, regenCount],
+    (type: CardType, account: AccountId): Card | undefined => remote.cards.find((c) => c.type === type && c.account_id === account),
+    [remote],
   );
 
   const allTodayCards = useCallback(
@@ -147,7 +130,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const posts = useMemo(() => {
     const linkEvents = events.filter((e) => e.action === "linked" && e.post_url);
-    const base: Post[] = ACCOUNT_PROFILES.flatMap((a) => (live.accounts[a.id]?.connected ? live.posts.filter((p) => p.account_id === a.id) : POSTS.filter((p) => p.account_id === a.id)));
+    const base: Post[] = ACCOUNT_PROFILES.flatMap((a) => (live.accounts[a.id]?.connected ? live.posts.filter((p) => p.account_id === a.id) : []));
     const merged: Post[] = base.map((p) => {
       const code = shortcode(p.url);
       const ev = [...linkEvents].reverse().find((e) => shortcode(e.post_url!) === code);
@@ -176,25 +159,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       push({ card_id: id, action: "passed", reason });
       flash(`패스 사유를 기록했어요: ${reason}`);
     },
-    regenerate: (type, account) => {
-      if (remote.source === "supabase") {
-        flash("재생성은 카드 API의 재생성 기능이 연결되면 사용할 수 있어요");
-        return;
-      }
-      const cur = todayCard(type, account);
-      if (!cur) return;
-      push({ card_id: cur.card_id, action: "regenerated" });
-      flash("다른 소재로 다시 만들었어요");
+    regenerate: () => {
+      flash("재생성은 카드 API의 재생성 기능이 연결되면 사용할 수 있어요");
     },
     linkPost: (id, url) => {
       push({ card_id: id, action: "linked", post_url: url });
       const code = shortcode(url);
-      const hit = POSTS.some((p) => shortcode(p.url) === code);
+      const hit = live.posts.some((p) => shortcode(p.url) === code);
       flash(hit ? "게시물을 연결했어요. 성과가 바로 반영돼요" : "URL을 등록했어요. 성과 수집을 기다리는 중이에요");
       return hit ? "matched" : "pending";
     },
     posts,
-    postSource: (account) => (live.accounts[account]?.connected ? "instagram" : "sample"),
+    postSource: (account) => (live.accounts[account]?.connected ? "instagram" : "none"),
     lastCaptured: live.last,
     toast,
   };

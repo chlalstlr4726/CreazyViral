@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { CheckCircle2, Link2, Loader2 } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { DEMO_URLS } from "@/lib/mock";
 import { Button } from "./ui";
 
 /** 게시 후 인스타 URL을 붙여넣어 카드 ↔ 게시물을 연결 (피드백 루프의 시작점) */
@@ -55,15 +54,6 @@ export function LinkPost({ cardId, compact = false }: { cardId: string; compact?
         </Button>
       </form>
       {err && <p className="mt-1.5 text-xs text-red-500">{err}</p>}
-      {!compact && (
-        <button
-          type="button"
-          onClick={() => setUrl(DEMO_URLS[0])}
-          className="mt-2 text-xs text-gray-400 underline-offset-2 hover:text-gray-600 hover:underline"
-        >
-          샘플 URL 넣어보기
-        </button>
-      )}
     </div>
   );
 }

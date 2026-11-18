@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { loadReferences } from "@/lib/references";
 import { readCompetitorReels, summarizeCompetitors } from "@/lib/competitorRepo";
 import { sbConfigured } from "@/lib/sb";
 
@@ -10,11 +9,9 @@ export async function GET(req: Request) {
   const days = Number(new URL(req.url).searchParams.get("days") ?? 7);
   if (![3, 7, 14].includes(days)) return NextResponse.json({ error: "invalid_period" }, { status: 400 });
   try {
-    const sample = !sbConfigured();
-    const items = sample
-      ? (await loadReferences()).items.filter((r) => +new Date(r.posted_at) >= Date.now() - days * 86_400_000)
-      : await readCompetitorReels(days);
-    return NextResponse.json({ sample, days, items, summary: summarizeCompetitors(items) });
+    // Supabase가 없으면 지어낸 예시 대신 빈 목록(화면은 '조건에 맞는 영상이 없어요').
+    const items = sbConfigured() ? await readCompetitorReels(days) : [];
+    return NextResponse.json({ sample: false, days, items, summary: summarizeCompetitors(items) });
   } catch {
     return NextResponse.json({ error: "references_unavailable" }, { status: 502 });
   }

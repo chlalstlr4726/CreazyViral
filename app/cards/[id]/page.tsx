@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { ArrowLeft, Check, Copy, ExternalLink, Music, RefreshCw } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { koDate } from "@/lib/format";
-import { TODAY } from "@/lib/mock";
+import { kstToday } from "@/lib/format";
 import type { AccountId } from "@/lib/accounts";
 import { Button, Chip, Difficulty, Panel, TypeBadge } from "@/components/ui";
 import { PassDialog } from "@/components/CardTile";
@@ -47,7 +47,7 @@ export default function CardDetail() {
   }
 
   const status = s.statusOf(card.card_id);
-  const isToday = card.date === TODAY;
+  const isToday = card.date === kstToday();
   const isCurrent = isToday && !!card.account_id && s.todayCard(card.type, card.account_id as AccountId)?.card_id === card.card_id;
   const total = card.storyboard.at(-1)?.end_s ?? 0;
 

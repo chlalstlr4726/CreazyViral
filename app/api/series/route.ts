@@ -4,21 +4,21 @@ import { readCompetitorReels } from "@/lib/competitorRepo";
 import { sb, sbConfigured } from "@/lib/sb";
 import { generateSeries } from "@/lib/seriesGeneration";
 import type { SeriesRun } from "@/lib/seriesTypes";
-import { SERIES_EXAMPLE } from "@/lib/seriesExample";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 const table = "series_recommendation_runs";
 
 export async function GET() {
-  if (!sbConfigured()) return NextResponse.json({ run: null, state: "unconfigured", example: SERIES_EXAMPLE });
+  // 실행 기록이 없으면 지어낸 예시 대신 빈 상태만 보낸다(화면은 상태 글만 보인다).
+  if (!sbConfigured()) return NextResponse.json({ run: null, state: "unconfigured" });
   try {
     const [row] = await sb<{ result: SeriesRun }[]>(table, { params: { select: "result", order: "created_at.desc", limit: "1" } });
     if (row) return NextResponse.json({ run: row.result, state: "ready" });
-    return NextResponse.json({ run: null, state: "empty", example: SERIES_EXAMPLE });
+    return NextResponse.json({ run: null, state: "empty" });
   } catch (error) {
     if (error instanceof Error && error.message === "supabase_http_404") {
-      return NextResponse.json({ run: null, state: "unavailable", example: SERIES_EXAMPLE });
+      return NextResponse.json({ run: null, state: "unavailable" });
     }
     return NextResponse.json({ error: "series_read_failed" }, { status: 502 });
   }

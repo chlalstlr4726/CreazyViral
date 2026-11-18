@@ -41,7 +41,7 @@ export async function POST(req: Request) {
       headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
       body: JSON.stringify({
         model: process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5",
-        max_tokens: 2500,
+        max_tokens: 8000,
         system: buildSystem(),
         messages: [
           // 첫 요청에는 계정 정보 전체를, 이어지는 수정 요청에는 이전 결과를 함께 보낸다

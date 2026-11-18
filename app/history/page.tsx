@@ -1,11 +1,10 @@
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import { useStore } from "@/lib/store";
-import { HISTORY_CARDS, TODAY } from "@/lib/mock";
-import { koDate, mult } from "@/lib/format";
+import { kstToday, koDate, mult } from "@/lib/format";
 import { Chip, Panel, TypeBadge } from "@/components/ui";
 import { LinkPost } from "@/components/LinkPost";
 import type { Card } from "@/lib/types";
@@ -13,14 +12,24 @@ import type { Card } from "@/lib/types";
 export default function HistoryPage() {
   const s = useStore();
   const [days, setDays] = useState(10);
+  const [past, setPast] = useState<Card[]>([]);
+  const TODAY = kstToday();
+
+  // 지난 카드: Supabase `cards`의 최근 30일(가짜 카드로 채우지 않는다)
+  useEffect(() => {
+    fetch("/api/cards/recent", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d: { cards?: Card[] }) => setPast(d.cards ?? []))
+      .catch(() => setPast([]));
+  }, []);
 
   const groups = useMemo(() => {
     const map = new Map<string, Card[]>();
     const today = s.allTodayCards();
-    map.set(TODAY, today);
-    for (const c of HISTORY_CARDS) map.set(c.date, [...(map.get(c.date) ?? []), c]);
+    if (today.length) map.set(TODAY, today);
+    for (const c of past) if (c.date !== TODAY) map.set(c.date, [...(map.get(c.date) ?? []), c]);
     return [...map.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1));
-  }, [s]);
+  }, [s, past, TODAY]);
 
   const scoreOf = (cardId: string) => s.posts.find((p) => p.card_id === cardId);
 
@@ -91,6 +100,14 @@ export default function HistoryPage() {
                 })}
               </Fragment>
             ))}
+            {groups.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-6 py-10 text-center">
+                  <p className="font-bold text-gray-700">아직 데이터 없음</p>
+                  <p className="mt-1 text-[13px] text-gray-500">카드 API가 만든 카드가 쌓이면 날짜별로 여기에 나타나요.</p>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
         {days < groups.length && (

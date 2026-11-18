@@ -1,7 +1,7 @@
 import { sb, sbConfigured } from "@/lib/sb";
-import type { ViralReel } from "@/lib/viralSeed";
+import type { ViralReel } from "@/lib/viralTypes";
 
-// Supabase `daily_recs` 표: 도하가 매일 승인한 추천 릴스(한 줄 = 그날 추천한 릴스 한 편).
+// Supabase `daily_recs` 표: 매일 아침 자동으로 고른 피드 상위 10편(한 줄 = 그날 추천한 릴스 한 편).
 // 서버에서만 읽는다(서버 키). 칸 설명은 supabase/migrations/005_daily_recs.sql.
 type Row = Record<string, unknown>;
 const num = (v: unknown) => Number(v ?? 0) || 0;
