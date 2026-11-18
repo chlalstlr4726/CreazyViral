@@ -69,6 +69,17 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // 메뉴가 열린 동안 뒤 페이지는 스크롤되지 않게 잠근다(닫으면 풀린다)
+  useEffect(() => {
+    if (!open) return;
+    const root = document.documentElement;
+    const prev = root.style.overflow;
+    root.style.overflow = "hidden";
+    return () => {
+      root.style.overflow = prev;
+    };
+  }, [open]);
+
   // 열면 닫기 단추로, 닫으면(메뉴 안에 초점이 있었을 때) 메뉴 단추로 초점을 옮긴다
   useEffect(() => {
     if (open) closeBtn.current?.focus({ preventScroll: true });
@@ -144,7 +155,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           else if (!reduce) animate(x, 0, { ...springFlick, velocity: info.velocity.x });
           else x.set(0);
         }}
-        className="glass-thick fixed inset-y-0 left-0 z-50 flex w-[264px] touch-pan-y flex-col rounded-r-2xl border-r border-[var(--glass-edge)]"
+        className="glass-thick fixed inset-y-0 left-0 z-50 flex w-[264px] touch-pan-y flex-col overscroll-contain rounded-r-2xl border-r border-[var(--glass-edge)]"
       >
         <div className="flex items-center gap-2.5 px-5 pt-5 pb-7">
           <img src="/logo.png" alt="Creazy" width={36} height={36} className="h-9 w-9 shrink-0" />

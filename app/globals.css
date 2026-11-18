@@ -66,5 +66,8 @@ body {
   .press:active:not(:disabled):not([aria-disabled="true"]) { transform: none; opacity: 0.8; }
 }
 
+/* 위에 붙은 머리줄만큼 이동 목표를 아래로(scrollIntoView·#이동이 머리줄에 가리지 않게) */
+html { scroll-padding-top: var(--app-header-h); }
+
 ::selection { background: #cfe0ff; color: inherit; }
 :focus-visible { outline-color: #2459c4; }

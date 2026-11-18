@@ -63,6 +63,42 @@ export function SeedFeed({ items, grown, capture = false }: { items: FeedItem[];
     return () => { io.disconnect(); io2.disconnect(); };
   }, [items]);
 
+  // 키보드로 한 편씩 넘기기: 아래·위 화살표, PageDown·PageUp을 누르면 다음·이전 릴스로 가서 머리줄 바로 아래에 멈춘다.
+  // (브라우저 기본은 40px쯤만 내려가고 '가까우면 멈춤' 칸 맞춤이 같은 편으로 되돌려, 키로는 넘어가지 않았다)
+  // 입력 칸에서는 건드리지 않는다. 첫 편보다 위(씨앗 그림)에서는 첫 편이 한 화면 안에 보일 때만 첫 편으로 데려간다.
+  useEffect(() => {
+    if (capture) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      const down = e.key === "ArrowDown" || e.key === "PageDown";
+      const up = e.key === "ArrowUp" || e.key === "PageUp";
+      if (!down && !up) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.closest?.("input, textarea, select, [contenteditable='true']")) return;
+      const w = wrap.current;
+      if (!w) return;
+      const reels = [...w.querySelectorAll<HTMLElement>(".seed-reel")];
+      if (!reels.length) return;
+      const h = headerPx();
+      const view = window.innerHeight - h;
+      const tops = reels.map((r) => r.getBoundingClientRect().top - h); // 머리줄 아래 가장자리 기준
+      let cur = 0;
+      tops.forEach((d, i) => { if (Math.abs(d) < Math.abs(tops[cur])) cur = i; });
+      let target: number;
+      if (Math.abs(tops[cur]) > view / 2) {
+        // 릴스 칸 밖: 씨앗 그림에서 아래로 갈 때 첫 편이 가까우면 첫 편으로, 아니면 브라우저 기본 스크롤
+        if (down && tops[0] > 0 && tops[0] < view * 1.1) target = 0;
+        else return;
+      } else target = down ? cur + 1 : cur - 1;
+      if (target < 0 || target >= reels.length) return; // 첫 편에서 위로, 마지막 편에서 아래로는 기본 스크롤
+      e.preventDefault();
+      const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      window.scrollTo({ top: window.scrollY + tops[target], behavior: calm ? "auto" : "smooth" });
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [capture]);
+
   useEffect(() => {
     const it = items[Math.max(active, 0)]; // 첫 편이 들어오기 전에도 첫 편의 훅 글씨는 미리 보인다(예전과 같음)
     if (it && !capture) layer.current?.show(firstSentence(it.hookStructure));

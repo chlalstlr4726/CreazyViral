@@ -117,6 +117,19 @@ export function StoryGrid({ data, editingId, onEdit }: { data: GridData; editing
     return () => clearTimeout(t);
   }, [stage, reduce, settledOnMount]);
 
+  // 휴대폰처럼 초점이 안 생기는 화면에서 칸을 눌러 연 말풍선은, 표 밖을 누르면 닫는다
+  useEffect(() => {
+    if (hover == null) return;
+    const onDown = (e: PointerEvent) => {
+      if (!gridRef.current?.contains(e.target as Node)) {
+        setHover(null);
+        setTip(null);
+      }
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [hover]);
+
   function showTip(k: number, el: HTMLElement) {
     const box = gridRef.current;
     if (!box) return;

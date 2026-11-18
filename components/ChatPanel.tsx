@@ -22,6 +22,8 @@ export function ChatPanel({ accountId, days }: { accountId: AccountId; days: 3 |
   // 진행 상태·결과는 화면 밖 저장소(계정별)에 있다. 계정 탭이나 메뉴를 바꿔 다녀와도 이어서 보인다.
   const { turns, busy, target, basis } = useStoryboard(accountId);
   const setTarget = (t: Target | null) => setStoryTarget(accountId, t);
+  // 다른 탭·메뉴에 다녀와 다시 그려질 때 이미 있던 말풍선은 다시 올라오지 않게(새로 보낸 것만 움직인다)
+  const [seenOnMount] = useState(() => new Set(turns.map((t) => t.key)));
   const inputRef = useRef<HTMLInputElement>(null);
 
   /** 고칠 안을 고르면 입력 칸으로 데려가 바로 쓸 수 있게 한다 */
@@ -78,7 +80,7 @@ export function ChatPanel({ accountId, days }: { accountId: AccountId; days: 3 |
           t.role === "user" ? (
             <motion.div
               key={t.key}
-              initial={{ opacity: 0, y: 10, scale: 0.98 }}
+              initial={seenOnMount.has(t.key) ? false : { opacity: 0, y: 10, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={spring}
               className="ml-auto w-fit max-w-[85%] origin-bottom-right rounded-2xl bg-blue-600 px-4 py-2.5 text-sm text-white"
