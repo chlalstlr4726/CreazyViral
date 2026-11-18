@@ -12,7 +12,7 @@ const clip = (s: unknown, n: number) => String(s ?? "").replace(/\s+/g, " ").tri
 export async function readLatestDailyRecs(limit = 5): Promise<ViralReel[]> {
   if (!sbConfigured()) throw new Error("supabase_not_configured");
   const [latest] = await sb<{ rec_date: string }[]>("daily_recs", {
-    params: { select: "rec_date", order: "rec_date.desc", limit: "1" },
+    params: { select: "rec_date", in_top10: "eq.true", order: "rec_date.desc", limit: "1" },
   });
   if (!latest) return [];
   const rows = await sb<Row[]>("daily_recs", {

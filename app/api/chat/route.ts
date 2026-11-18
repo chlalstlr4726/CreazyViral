@@ -43,7 +43,7 @@ export async function POST(req: Request) {
     if (!key) return NextResponse.json({ ok: false, error: "edit_needs_ai" }, { status: 400 });
     const r = await callClaude({
       key,
-      model: process.env.ANTHROPIC_MODEL || SONNET,
+      model: SONNET, // 36칸·고르기와 같은 Sonnet 5.5로 고정(환경 변수의 옛 모델 이름이 생각·effort 설정과 맞지 않아 실패하지 않게)
       system: buildSystem(),
       content: [
         { type: "text", text: buildShared({ account, concept, materials, focus, viral, basis, message }) },

@@ -181,7 +181,7 @@ export function StoryGrid({ data, editingId, onEdit }: { data: GridData; editing
             {data.phase === "connecting" && "준비 중…"}
             {data.phase === "filling" && "칸마다 따로 쓰는 중"}
             {data.phase === "picking" && `${filled}개 가운데 4개 고르는 중`}
-            {data.phase === "done" && (data.mode === "ai" ? `${pick}가 4개를 골랐어요` : <span className="text-amber-700">규칙으로 4개를 골랐어요</span>)}
+            {data.phase === "done" && (data.mode === "ai" ? (data.note ? <span className="text-amber-700">{`${pick}와 규칙으로 4개를 골랐어요`}</span> : `${pick}가 4개를 골랐어요`) : <span className="text-amber-700">규칙으로 4개를 골랐어요</span>)}
             {data.phase === "error" && <span className="text-red-500">멈췄어요</span>}
           </span>
         </div>

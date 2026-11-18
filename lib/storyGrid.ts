@@ -318,7 +318,11 @@ export async function runGrid(o: {
     });
     addUsage(sonnet, r.usage);
     picks = r.ok ? parsePicks(r.text, new Set(done.map((d) => d.id))) : null;
-    if (picks && picks.length < 4) picks = rulePicks(done, picks);
+    if (picks && picks.length < 4) {
+      const n = picks.length;
+      picks = rulePicks(done, picks);
+      note = `AI가 ${n}개만 골라 나머지는 규칙으로 채웠어요.`;
+    }
     if (!picks) note = r.error === "aborted" ? "시간 안에 AI가 고르지 못해 규칙으로 골랐어요." : "AI 고르기가 실패해 규칙으로 골랐어요.";
   }
   if (!picks) {

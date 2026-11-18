@@ -215,20 +215,24 @@ export async function send(account: AccountId, args: SendArgs) {
         patchGrid(account, outKey, (g) => ({ ...g, phase: "error", error: e.error === "no_cells" ? "스토리보드를 한 칸도 만들지 못했어요. 잠시 뒤 다시 시도해 주세요." : undefined }), true);
       }
     };
-    for (;;) {
-      const { value, done } = await reader.read();
-      if (value) buf += dec.decode(value, { stream: true });
-      let nl: number;
-      while ((nl = buf.indexOf("\n")) >= 0) {
-        const line = buf.slice(0, nl).trim();
-        buf = buf.slice(nl + 1);
-        if (line) {
-          try {
-            apply(JSON.parse(line) as GridEvent);
-          } catch {}
+    try {
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (value) buf += dec.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = buf.indexOf("\n")) >= 0) {
+          const line = buf.slice(0, nl).trim();
+          buf = buf.slice(nl + 1);
+          if (line) {
+            try {
+              apply(JSON.parse(line) as GridEvent);
+            } catch {}
+          }
         }
+        if (done) break;
       }
-      if (done) break;
+    } catch {
+      // 받는 도중 연결이 끊김(와이파이, 잠자기, 서버 시간 한도): 채워 둔 칸은 남기고 표를 '멈춤'으로 둔다.
     }
     if (!ended) patchGrid(account, outKey, (g) => ({ ...g, phase: "error", error: "연결이 끊겼어요. 다시 시도해 주세요." }), true);
   } catch {

@@ -18,6 +18,11 @@ export interface ClaudeResult {
 
 type Block = { type: "text"; text: string; cache_control?: { type: "ephemeral" } };
 
+// 글을 자르다 이모지(UTF-16 두 단위)가 반으로 잘리면 짝 없는 반쪽이 남는다. 그 반쪽이 든 JSON은 API가 400으로 거절하므로
+// 보내기 직전에 모든 글에서 짝 없는 반쪽을 지운다.
+const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
+const wellFormed = (_k: string, v: unknown) => (typeof v === "string" ? v.replace(LONE_SURROGATE, "") : v);
+
 export const emptyUsage = (): ClaudeUsage => ({ input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 });
 
 export function addUsage(a: ClaudeUsage, b: ClaudeUsage) {
@@ -66,7 +71,7 @@ export async function callClaude(args: {
         output_config: { effort, ...(schema ? { format: { type: "json_schema", schema } } : {}) },
         system,
         messages: [{ role: "user", content }],
-      }),
+      }, wellFormed),
       signal,
     });
     if (!res.ok) {
