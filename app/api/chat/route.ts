@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
 import { ACCOUNT_BY_ID, type AccountId } from "@/lib/accounts";
-import { buildSystem, buildUser, parseStory, pickMaterial, sanitizeConcept, sanitizeMaterials, templateStory } from "@/lib/chat";
+import { STORY_SCHEMA, basisLabel, buildEditTask, buildShared, buildSystem, parseStory, pickMaterial, sanitizeConcept, sanitizeMaterials, templateStory, type Basis } from "@/lib/chat";
+import { callClaude } from "@/lib/claude";
+import { SONNET, runGrid, type GridEvent } from "@/lib/storyGrid";
 import { loadHomeTop } from "@/lib/viral";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-// 계정별 AI 스토리보드. 계정 ID와 (화면에서 편집한) 컨셉/소재를 받아 최근 바이럴 상위 영상 구조로 스토리보드를 만든다.
-// ANTHROPIC_API_KEY가 없으면 규칙 기반 초안을 돌려준다.
+// 계정별 AI 스토리보드.
+// - 처음 요청: Haiku가 36칸(훅 방식 4 × 전개 9)을 만들고 Sonnet이 4개를 고른다. 진행을 NDJSON(한 줄에 사건 하나)으로 흘려 보낸다.
+// - 수정 요청(body.edit.story가 있을 때): 고른 스토리보드 하나를 Sonnet이 고쳐 JSON으로 한 번에 돌려준다.
+// - ANTHROPIC_API_KEY가 없으면 규칙 기반 초안 1개를 JSON으로 돌려준다(표 없음).
 export async function POST(req: Request) {
   let body: Record<string, unknown>;
   try {
@@ -19,45 +23,86 @@ export async function POST(req: Request) {
   if (!account) return NextResponse.json({ ok: false, error: "unknown_account" }, { status: 400 });
 
   const days = [3, 7, 14].includes(Number(body.days)) ? Number(body.days) : 3;
-  const message = String(body.message ?? "").trim().slice(0, 1000) || "최근 우리 소재로, 최근 며칠간 탑5 바이럴 구조에 맞는 스토리보드 하나 짜줘";
+  const message = String(body.message ?? "").trim().slice(0, 1000) || "우리 소재로, 위 바이럴 Top 5 구조에 맞는 스토리보드를 짜줘";
   const concept = sanitizeConcept(body.concept as never, account.concept);
   const materials = sanitizeMaterials(body.materials, account.materials);
-  const focus = pickMaterial(materials, typeof body.materialId === "string" ? body.materialId : undefined);
-  const viral = (await loadHomeTop(days, 5)).items;
+  const materialId = typeof body.materialId === "string" ? body.materialId : undefined;
+  const focus = pickMaterial(materials, materialId);
+  const top = await loadHomeTop(days, 5);
+  const viral = top.items;
+  const basis: Basis = { source: top.source, recDate: top.recDate, days };
+  const used = { viral, material: focus ? { id: focus.id, title: focus.title } : null, days, basis: basisLabel(basis, viral.length) };
 
   const key = process.env.ANTHROPIC_API_KEY;
-  const used = { viral, material: focus ? { id: focus.id, title: focus.title } : null, days };
-  if (!key) return NextResponse.json({ ok: true, story: templateStory(account, concept, focus, viral), used });
+  const edit = body.edit as { story?: unknown } | undefined;
 
-  const history = (Array.isArray(body.history) ? body.history : [])
-    .slice(-6)
-    .map((h) => ({ role: (h as { role?: string })?.role === "assistant" ? "assistant" : "user", content: String((h as { content?: unknown })?.content ?? "").slice(0, 4000) }))
-    .filter((h) => h.content);
-  while (history[0]?.role === "assistant") history.shift(); // 대화는 사용자 메시지로 시작해야 한다
-
-  try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({
-        model: process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5",
-        max_tokens: 8000,
-        system: buildSystem(),
-        messages: [
-          // 첫 요청에는 계정 정보 전체를, 이어지는 수정 요청에는 이전 결과를 함께 보낸다
-          ...history,
-          { role: "user", content: buildUser({ account, concept, materials, focus, viral, days, message }) },
-        ],
-      }),
+  if (edit?.story) {
+    const current = parseStory(JSON.stringify(edit.story), focus?.title ?? "");
+    if (!current) return NextResponse.json({ ok: false, error: "bad_story" }, { status: 400 });
+    if (!key) return NextResponse.json({ ok: false, error: "edit_needs_ai" }, { status: 400 });
+    const r = await callClaude({
+      key,
+      model: process.env.ANTHROPIC_MODEL || SONNET,
+      system: buildSystem(),
+      content: [
+        { type: "text", text: buildShared({ account, concept, materials, focus, viral, basis, message }) },
+        { type: "text", text: buildEditTask(current, message) },
+      ],
+      maxTokens: 16000,
+      effort: "medium",
+      schema: STORY_SCHEMA,
       signal: AbortSignal.timeout(55_000),
     });
-    if (!res.ok) return NextResponse.json({ ok: false, error: `ai_http_${res.status}` }, { status: 502 });
-    const data = (await res.json()) as { content?: { type: string; text?: string }[] };
-    const text = (data.content ?? []).filter((c) => c.type === "text").map((c) => c.text ?? "").join("");
-    const story = parseStory(text, focus?.title ?? "");
+    if (!r.ok) return NextResponse.json({ ok: false, error: `ai_${r.error}` }, { status: 502 });
+    const story = parseStory(r.text, current.material);
     if (!story) return NextResponse.json({ ok: false, error: "ai_parse_failed" }, { status: 502 });
     return NextResponse.json({ ok: true, story, used });
-  } catch {
-    return NextResponse.json({ ok: false, error: "ai_unreachable" }, { status: 502 });
   }
+
+  if (!key) return NextResponse.json({ ok: true, story: templateStory(account, concept, focus, viral), used });
+
+  const enc = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      let open = true;
+      const emit = (e: GridEvent) => {
+        if (!open) return;
+        try {
+          controller.enqueue(enc.encode(`${JSON.stringify(e)}\n`));
+        } catch {
+          open = false;
+        }
+      };
+      try {
+        await runGrid({
+          key,
+          account,
+          concept,
+          materials,
+          focus,
+          explicitMaterial: !!materialId && materialId !== "auto",
+          viral,
+          basis,
+          message,
+          signal: req.signal,
+          emit,
+        });
+      } catch {
+        emit({ type: "error", error: "server_error" });
+      } finally {
+        open = false;
+        try {
+          controller.close();
+        } catch {}
+      }
+    },
+  });
+  return new Response(stream, {
+    headers: {
+      "content-type": "application/x-ndjson; charset=utf-8",
+      // no-transform: 개발 서버의 압축이 줄을 모아 두지 않게(만들어지는 대로 화면에 닿게)
+      "cache-control": "no-cache, no-transform",
+      "x-accel-buffering": "no",
+    },
+  });
 }

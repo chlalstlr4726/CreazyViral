@@ -17,7 +17,7 @@ export async function readLatestDailyRecs(limit = 5): Promise<ViralReel[]> {
   if (!latest) return [];
   const rows = await sb<Row[]>("daily_recs", {
     params: {
-      select: "rec_date,rank,shortcode,url,username,caption,posted_at,plays,likes,comments,shares,duration_sec,followers,multiple,category,hook_3s,reason,ad_status,ai_made,music_title,caution",
+      select: "rec_date,rank,shortcode,url,username,caption,posted_at,plays,likes,comments,shares,duration_sec,followers,usual_plays,multiple,category,hook_3s,flow,cta,hook_formula,story_structure,display_style,same_format_accounts,reason,ad_status,ai_made,music_title,caution",
       rec_date: `eq.${latest.rec_date}`,
       in_top10: "eq.true",
       order: "rank.asc",
@@ -48,5 +48,12 @@ export async function readLatestDailyRecs(limit = 5): Promise<ViralReel[]> {
       caution: r.caution == null ? null : clip(r.caution, 200),
       aiMade: (["예", "아니오", "모름"] as const).find((v) => v === r.ai_made) ?? null,
       hook: clip(r.hook_3s, 120),
+      hookFormula: clip(r.hook_formula, 80) || undefined,
+      storyStructure: clip(r.story_structure, 80) || undefined,
+      displayStyle: clip(r.display_style, 80) || undefined,
+      sameFormatAccounts: r.same_format_accounts == null ? null : num(r.same_format_accounts),
+      flow: clip(r.flow, 300) || undefined,
+      cta: clip(r.cta, 160) || undefined,
+      usualPlays: r.usual_plays == null ? null : num(r.usual_plays),
     }));
 }
