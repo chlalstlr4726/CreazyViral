@@ -6,7 +6,8 @@ import { SONNET, runGrid, type GridEvent } from "@/lib/storyGrid";
 import { loadHomeTop } from "@/lib/viral";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+// 36칸(Haiku, 생각 켬) + 고르기(Sonnet)가 넉넉히 끝나게 300초. Vercel Hobby(Fluid compute)의 최대값이 300초다.
+export const maxDuration = 300;
 
 // 계정별 AI 스토리보드.
 // - 처음 요청: Haiku가 36칸(훅 방식 4 × 전개 9)을 만들고 Sonnet이 4개를 고른다. 진행을 NDJSON(한 줄에 사건 하나)으로 흘려 보낸다.
@@ -51,7 +52,7 @@ export async function POST(req: Request) {
       maxTokens: 16000,
       effort: "medium",
       schema: STORY_SCHEMA,
-      signal: AbortSignal.timeout(55_000),
+      signal: AbortSignal.timeout(240_000),
     });
     if (!r.ok) return NextResponse.json({ ok: false, error: `ai_${r.error}` }, { status: 502 });
     const story = parseStory(r.text, current.material);

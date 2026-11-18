@@ -87,7 +87,6 @@ export function StoryGrid({ data, editingId, onEdit }: { data: GridData; editing
   const cardsRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<number | null>(null);
   const [tip, setTip] = useState<{ left: number; top: number; origin: number } | null>(null);
-  const [stage, setStage] = useState(0); // 0 = 아직, 1 = 4칸 떠오름, 2 = 카드 펼침
   const [cardHover, setCardHover] = useState<string | null>(null);
 
   const running = data.phase === "connecting" || data.phase === "filling" || data.phase === "picking";
@@ -97,19 +96,26 @@ export function StoryGrid({ data, editingId, onEdit }: { data: GridData; editing
   const pickRank = new Map(data.picks.map((p) => [p.id, p.rank]));
   const revealed = data.phase === "done" && data.picks.length > 0;
 
+  // 다른 계정 탭이나 메뉴에 다녀와 이 표가 다시 그려질 때: 이미 끝난 결과면 빛줄·떠오름·펼침을 다시 틀지 않고
+  // 끝난 모습을 바로 보인다. 진행 중이면 이어서 움직이고, 그때 이미 찬 칸은 다시 튀어나오지 않는다.
+  const [settledOnMount] = useState(() => data.phase === "done");
+  const [okOnMount] = useState(() => new Set(data.cells.flatMap((c, k) => (c.status === "ok" ? [k] : []))));
+  const [stage, setStage] = useState(() => (settledOnMount && revealed ? 2 : 0)); // 0 = 아직, 1 = 4칸 떠오름, 2 = 카드 펼침
+
   useEffect(() => {
     if (!revealed) return setStage(0);
+    if (settledOnMount) return setStage(2);
     setStage(1);
     const t = setTimeout(() => setStage(2), reduce ? 0 : 1000);
     return () => clearTimeout(t);
-  }, [revealed, reduce]);
+  }, [revealed, reduce, settledOnMount]);
 
-  // 카드가 펼쳐지면 화면 안으로 데려온다(아래로 펼쳐져 화면 밖에서 끝나는 일을 막기)
+  // 카드가 펼쳐지면 화면 안으로 데려온다(아래로 펼쳐져 화면 밖에서 끝나는 일을 막기). 끝난 결과로 돌아온 때는 움직이지 않는다.
   useEffect(() => {
-    if (stage !== 2) return;
+    if (stage !== 2 || settledOnMount) return;
     const t = setTimeout(() => cardsRef.current?.scrollIntoView({ block: "nearest", behavior: reduce ? "auto" : "smooth" }), reduce ? 0 : 260);
     return () => clearTimeout(t);
-  }, [stage, reduce]);
+  }, [stage, reduce, settledOnMount]);
 
   function showTip(k: number, el: HTMLElement) {
     const box = gridRef.current;
@@ -239,7 +245,7 @@ export function StoryGrid({ data, editingId, onEdit }: { data: GridData; editing
                       {ok && (
                         // 회색 칸 안에서 파스텔 칸이 자라 나온다(스프링). 고르는 동안에는 빛줄에 맞춰 반짝인다(CSS, 위치 대신 translate 속성만 써서 스프링과 겹치지 않음)
                         <motion.span
-                          initial={{ opacity: 0, scale: 0.82 }}
+                          initial={okOnMount.has(k) ? false : { opacity: 0, scale: 0.82 }}
                           animate={{ opacity: 1, scale: 1 }}
                           transition={springSnappy}
                           className={clsx("pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]", data.phase === "picking" && "sg-anim animate-[sg-scan_1.8s_ease-in-out_infinite]")}
@@ -336,6 +342,7 @@ export function StoryGrid({ data, editingId, onEdit }: { data: GridData; editing
                   hook={data.rows[Math.floor(k / 9)]?.label ?? ""}
                   col={data.cols[k % 9]}
                   delay={i * 0.09}
+                  animate={!settledOnMount}
                   editing={editingId === p.id}
                   onHover={(on) => setCardHover(on ? p.id : null)}
                   onEdit={() => onEdit(p.id, cell.story, p.rank)}
@@ -349,14 +356,14 @@ export function StoryGrid({ data, editingId, onEdit }: { data: GridData; editing
   );
 }
 
-function PickCard({ pick, story, row, hook, col, delay, editing, onHover, onEdit }: { pick: GridPick; story: StoryResult; row: number; hook: string; col?: VariantCol; delay: number; editing: boolean; onHover: (on: boolean) => void; onEdit: () => void }) {
+function PickCard({ pick, story, row, hook, col, delay, animate, editing, onHover, onEdit }: { pick: GridPick; story: StoryResult; row: number; hook: string; col?: VariantCol; delay: number; animate: boolean; editing: boolean; onHover: (on: boolean) => void; onEdit: () => void }) {
   const tone = TONES[row] ?? TONES[0];
   return (
     <motion.article
       onMouseEnter={() => onHover(true)}
       onMouseLeave={() => onHover(false)}
-      // 표에서 떨어져 나오듯 위에서 아래로 펼쳐진다(스프링, 튕김 없음)
-      initial={{ opacity: 0, y: -14, clipPath: "inset(0% 0% 100% 0% round 12px)" }}
+      // 표에서 떨어져 나오듯 위에서 아래로 펼쳐진다(스프링, 튕김 없음). 끝난 결과로 돌아온 때는 펼침을 다시 틀지 않는다.
+      initial={animate ? { opacity: 0, y: -14, clipPath: "inset(0% 0% 100% 0% round 12px)" } : false}
       animate={{ opacity: 1, y: 0, clipPath: "inset(0% 0% 0% 0% round 12px)" }}
       transition={{ ...springGentle, delay }}
       className={clsx("min-w-0 rounded-xl border bg-white p-3.5 shadow-xs sm:p-4", editing ? "border-blue-400 ring-2 ring-blue-100" : "border-gray-200")}

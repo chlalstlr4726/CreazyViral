@@ -9,10 +9,13 @@ import { addUsage, callClaude, costUsd, emptyUsage, type ClaudeUsage } from "./c
 export const HAIKU = "claude-haiku-5-5";
 export const SONNET = "claude-sonnet-5-5";
 const CONCURRENCY = 12;
-// 칸 만들기를 끊는 시각. 고르기(Sonnet, 보통 10~15초)가 60초(maxDuration) 안에 끝나도록 40초로 둔다.
-const HAIKU_CUTOFF_MS = 40_000;
-// 고르기를 끊는 시각. 넘으면 규칙으로 고른다.
-const PICK_DEADLINE_MS = 57_000;
+// 칸 쓰기의 생각 깊이(생각은 켬). 11-18 실제 실행: low는 칸 채우기 38초·전체 45초·0.12달러, medium은 56초·63초·0.15달러.
+// 같은 칸 6쌍을 눈가림 비교한 결과 3 대 3으로 뚜렷한 차이가 없어 빠르고 싼 low를 쓴다.
+const HAIKU_EFFORT: "low" | "medium" = "low";
+// 칸 만들기를 끊는 시각. 서버 한도(route.ts maxDuration 300초) 안에서 고르기(Sonnet, 보통 7~15초)까지 넉넉히 끝나게 150초.
+const HAIKU_CUTOFF_MS = 150_000;
+// 고르기를 끊는 시각. 넘으면 규칙(훅 방식마다 하나씩)으로 고른다.
+const PICK_DEADLINE_MS = 240_000;
 
 export interface HookRow { key: string; label: string; desc: string }
 export interface VariantCol { label: string; desc: string; material: string }
@@ -263,10 +266,9 @@ export async function runGrid(o: {
             { type: "text", text: shared, cache_control: { type: "ephemeral" } },
             { type: "text", text: cellTask(spec.id, HOOKS[spec.row], col) },
           ],
-          maxTokens: 4000,
-          effort: "low",
-          // 생각을 켜면 칸마다 2천 토큰 가까이 생각해 36칸이 40초 넘게 걸렸다(11-18 시험). 칸 쓰기는 생각 없이, 고르기만 Sonnet이 생각한다.
-          thinking: "disabled",
+          // 생각을 켠다(기본 adaptive): 글의 질을 올리려고(11-18 도하 요청). 답 상한은 생각에 다 쓰지 않게 넉넉히.
+          maxTokens: 10000,
+          effort: HAIKU_EFFORT,
           schema: STORY_SCHEMA,
           signal: stopMaking,
         });
