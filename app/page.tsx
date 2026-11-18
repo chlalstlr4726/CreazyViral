@@ -26,7 +26,7 @@ function HomeTabs() {
           if (key === "today") query.delete("tab");
           else query.set("tab", key);
           return <Link key={key} href={query.size ? "/?" + query : "/"} aria-current={key === selected ? "page" : undefined}
-            className={key === selected ? "rounded-lg bg-blue-50 px-3 py-2 text-sm font-bold text-blue-700" : "rounded-lg px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100"}>{label}</Link>;
+            className={key === selected ? "press rounded-lg bg-blue-50 px-3 py-2 text-sm font-bold text-blue-700" : "press rounded-lg px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100"}>{label}</Link>;
         })}
       </nav>
       {selected === "today" && <AccountTabs />}

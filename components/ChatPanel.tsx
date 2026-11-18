@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { spring } from "@/lib/motion";
 import { PencilLine, Send, Sparkles, X } from "lucide-react";
 import { type AccountId } from "@/lib/accounts";
 import type { StoryResult, StoryUsed } from "@/lib/chat";
@@ -154,20 +156,28 @@ export function ChatPanel({ accountId, days }: { accountId: AccountId; days: 3 |
       />
 
       <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <label className="flex w-full min-w-0 items-center gap-2 text-[13px] text-gray-600 sm:w-auto">
+        <label className="flex w-full min-w-0 items-center gap-2 text-[0.8125rem] text-gray-600 sm:w-auto">
           <span className="shrink-0">소재</span>
-          <select className="h-8 min-w-0 flex-1 rounded-md border border-gray-200 bg-white px-2 text-[13px] sm:max-w-[16rem] sm:flex-none" value={materialId} onChange={(e) => setMaterialId(e.target.value)}>
+          <select className="h-8 min-w-0 flex-1 rounded-md border border-gray-200 bg-white px-2 text-[0.8125rem] sm:max-w-[16rem] sm:flex-none" value={materialId} onChange={(e) => setMaterialId(e.target.value)}>
             <option value="">자동 (최근 소재 3개를 돌려 쓰기)</option>
             {usable.map((m) => <option key={m.id} value={m.id}>{m.title}</option>)}
           </select>
         </label>
-        <span className="text-[13px] text-gray-500">기준: {basis ?? "위의 바이럴 Top 5"} (훅 공식·이야기 구조·전개 같은 분석 칸 포함)</span>
+        <span className="text-[0.8125rem] text-gray-500">기준: {basis ?? "위의 바이럴 Top 5"} (훅 공식·이야기 구조·전개 같은 분석 칸 포함)</span>
       </div>
 
       <div className="space-y-4">
         {turns.map((t) =>
           t.role === "user" ? (
-            <div key={t.key} className="ml-auto w-fit max-w-[85%] rounded-xl bg-blue-600 px-4 py-2.5 text-sm text-white">{t.text}</div>
+            <motion.div
+              key={t.key}
+              initial={{ opacity: 0, y: 10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={spring}
+              className="ml-auto w-fit max-w-[85%] origin-bottom-right rounded-2xl bg-blue-600 px-4 py-2.5 text-sm text-white"
+            >
+              {t.text}
+            </motion.div>
           ) : t.kind === "grid" ? (
             <StoryGrid
               key={t.key}
@@ -191,22 +201,31 @@ export function ChatPanel({ accountId, days }: { accountId: AccountId; days: 3 |
           ) : t.text ? (
             <p key={t.key} className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{t.text}</p>
           ) : (
-            <p key={t.key} className="text-sm text-gray-400">고치는 중…</p>
+            <p key={t.key} className="text-sm text-gray-500">고치는 중…</p>
           ),
         )}
       </div>
 
+      <AnimatePresence initial={false}>
       {target && (
-        <div className="mt-4 flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-[13px] text-blue-800">
+        <motion.div
+          key="edit-target"
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={spring}
+          className="mt-4 flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-[0.8125rem] text-blue-800"
+        >
           <PencilLine size={14} className="shrink-0" />
           <span className="min-w-0 truncate">
             <b>{target.label}</b> 고치는 중: {target.story.title}
           </span>
-          <button type="button" aria-label="고치기 그만두기" onClick={() => setTarget(null)} className="ml-auto shrink-0 rounded p-1 hover:bg-blue-100">
+          <button type="button" aria-label="고치기 그만두기" onClick={() => setTarget(null)} className="press ml-auto shrink-0 rounded p-1 hover:bg-blue-100">
             <X size={14} />
           </button>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
         <input
@@ -232,14 +251,14 @@ function Story({ story, used, label, editing, onFollow }: { story: StoryResult; 
     <div className={`rounded-xl border bg-gray-50/50 p-4 ${editing ? "border-blue-400 ring-2 ring-blue-100" : "border-gray-200"}`}>
       <div className="mb-1 flex flex-wrap items-center gap-2">
         <Sparkles size={15} className="text-blue-500" />
-        <h4 className="text-[15px] font-bold">{story.title}</h4>
+        <h4 className="text-[0.9375rem] font-bold">{story.title}</h4>
         <Chip tone={ai ? "blue" : "amber"}>{ai ? (label ?? "AI 작성") : "기본 틀(AI 키 없음)"}</Chip>
         {story.material && <Chip>소재: {story.material}</Chip>}
       </div>
-      <p className="text-[13px] leading-relaxed text-gray-600">{story.why}</p>
+      <p className="text-[0.8125rem] leading-relaxed text-gray-600">{story.why}</p>
 
       {used && used.viral.length > 0 && !ai && (
-        <details className="mt-2 text-[13px] text-gray-500">
+        <details className="mt-2 text-[0.8125rem] text-gray-500">
           <summary className="cursor-pointer font-semibold">참고한 {used.basis}</summary>
           <ol className="mt-1.5 space-y-1">
             {used.viral.map((v, i) => (
@@ -253,8 +272,8 @@ function Story({ story, used, label, editing, onFollow }: { story: StoryResult; 
 
       <ol className="mt-3 space-y-2 rounded-lg border border-gray-200 bg-white p-3">
         {story.cuts.map((c, i) => (
-          <li key={i} className="text-[13px] leading-relaxed">
-            <span className="num mr-1.5 text-[11.5px] text-gray-400">{c.start_s}–{c.end_s}초</span>
+          <li key={i} className="text-[0.8125rem] leading-relaxed">
+            <span className="num mr-1.5 text-[0.71875rem] text-gray-500">{c.start_s}–{c.end_s}초</span>
             <span className="text-gray-700">{c.visual}</span>
             <span className="block font-medium text-gray-900">“{c.caption}”</span>
           </li>
@@ -262,9 +281,9 @@ function Story({ story, used, label, editing, onFollow }: { story: StoryResult; 
       </ol>
 
       <p className="mt-3 whitespace-pre-line text-sm"><span className="font-semibold">캡션 </span>{story.caption}</p>
-      <p className="mt-1 break-words text-[13px] text-blue-600">{story.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")}</p>
+      <p className="mt-1 break-words text-[0.8125rem] text-blue-600">{story.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")}</p>
       {story.cautions.length > 0 && (
-        <ul className="mt-2 list-disc pl-5 text-[13px] text-amber-700">
+        <ul className="mt-2 list-disc pl-5 text-[0.8125rem] text-amber-700">
           {story.cautions.map((c, i) => <li key={i}>{c}</li>)}
         </ul>
       )}

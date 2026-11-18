@@ -4,11 +4,13 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Lightbulb } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import type { Card, CardType } from "@/lib/types";
 import { ACCOUNT_BY_ID, type AccountId } from "@/lib/accounts";
 import { useStore } from "@/lib/store";
 import { buildDirection } from "@/lib/recommend";
 import { kstToday, koDate } from "@/lib/format";
+import { spring } from "@/lib/motion";
 import { CardTile, PassDialog } from "./CardTile";
 import { Button, Chip, SectionTitle, TypeBadge } from "./ui";
 
@@ -19,6 +21,9 @@ export function TodaySection({ accountId }: { accountId: AccountId }) {
   const [passFor, setPassFor] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [sendMsg, setSendMsg] = useState<string | null>(null);
+  // '추천 근거' 칸: 펼칠 때와 같은 길로 접힌다. 접히는 움직임이 끝날 때까지 <details>를 열어 둔다.
+  const [whyOpen, setWhyOpen] = useState(false);
+  const [whyHeld, setWhyHeld] = useState(false);
 
   async function sendToSlack() {
     setSending(true);
@@ -65,7 +70,7 @@ export function TodaySection({ accountId }: { accountId: AccountId }) {
         right={
           <div className="flex items-center gap-3">
             {sendMsg && <span className="text-sm text-gray-500">{sendMsg}</span>}
-            <Button variant="secondary" size="sm" onClick={sendToSlack} disabled={sending || !hasCards} title={hasCards ? undefined : "보낼 카드가 아직 없어요"}>
+            <Button variant="secondary" size="sm" className="whitespace-nowrap" onClick={sendToSlack} disabled={sending || !hasCards} title={hasCards ? undefined : "보낼 카드가 아직 없어요"}>
               {sending ? "보내는 중…" : "슬랙으로 테스트 전송"}
             </Button>
           </div>
@@ -77,24 +82,43 @@ export function TodaySection({ accountId }: { accountId: AccountId }) {
           <Lightbulb size={16} /> 오늘의 방향성 제언
         </div>
         <p className="mt-3 text-xl font-bold leading-snug">{direction.headline}</p>
-        <details className="group mt-3">
-          <summary className="flex w-fit cursor-pointer list-none items-center gap-1.5 rounded text-sm font-medium text-blue-100 focus-visible:outline-2 focus-visible:outline-offset-4">
-            추천 근거 <ChevronDown size={15} aria-hidden="true" className="group-open:rotate-180" />
+        <details className="mt-3" open={whyOpen || whyHeld}>
+          <summary
+            className="press flex w-fit cursor-pointer list-none items-center gap-1.5 rounded text-sm font-medium text-blue-100 focus-visible:outline-2 focus-visible:outline-offset-4"
+            onClick={(e) => {
+              e.preventDefault();
+              setWhyHeld(true);
+              setWhyOpen(!whyOpen);
+            }}
+          >
+            추천 근거 <motion.span aria-hidden="true" className="inline-flex" animate={{ rotate: whyOpen ? 180 : 0 }} transition={spring}><ChevronDown size={15} /></motion.span>
           </summary>
-          <div className="mt-4">
-            <Chip tone={direction.confidence === "높음" ? "green" : direction.confidence === "보통" ? "amber" : "gray"}>
-              근거 신뢰도 {direction.confidence}
-            </Chip>
-          </div>
-          <ul className="mt-3 space-y-1.5 text-sm text-blue-100/90">
-            {direction.evidence.map((e) => (
-              <li key={e} className="flex gap-2">
-                <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-blue-300" />
-                {e}
-              </li>
-            ))}
-          </ul>
-          {direction.caveat && <p className="mt-3 text-xs text-blue-200/70">※ {direction.caveat}</p>}
+          <AnimatePresence initial={false} onExitComplete={() => setWhyHeld(false)}>
+            {whyOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={spring}
+                className="flow-root overflow-clip"
+              >
+                <div className="mt-4">
+                  <Chip tone={direction.confidence === "높음" ? "green" : direction.confidence === "보통" ? "amber" : "gray"}>
+                    근거 신뢰도 {direction.confidence}
+                  </Chip>
+                </div>
+                <ul className="mt-3 space-y-1.5 text-sm text-blue-100/90">
+                  {direction.evidence.map((e) => (
+                    <li key={e} className="flex gap-2">
+                      <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-blue-300" />
+                      {e}
+                    </li>
+                  ))}
+                </ul>
+                {direction.caveat && <p className="mt-3 text-xs text-blue-200/70">※ {direction.caveat}</p>}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </details>
       </div>
 
@@ -124,15 +148,17 @@ export function TodaySection({ accountId }: { accountId: AccountId }) {
         })}
       </div>
 
-      {passFor && (
-        <PassDialog
-          onClose={() => setPassFor(null)}
-          onConfirm={(reason) => {
-            s.pass(passFor, reason);
-            setPassFor(null);
-          }}
-        />
-      )}
+      <AnimatePresence>
+        {passFor && (
+          <PassDialog
+            onClose={() => setPassFor(null)}
+            onConfirm={(reason) => {
+              s.pass(passFor, reason);
+              setPassFor(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

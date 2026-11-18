@@ -20,8 +20,51 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-@keyframes pop {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+/* ── 애플식 바탕 규칙(2026-11-18) ─────────────────────────────
+   유리 재질: 내용 위에 떠 있는 판(머리줄, 메뉴, 알림)에만 쓴다. 큰 판일수록 더 두껍게(흐림·그림자 더 크게).
+   누를 때 반응: 손을 대는 순간 살짝 눌린다(손을 뗄 때가 아니라).
+   접근성: 움직임 줄이기·투명도 줄이기·대비 높이기 설정을 따른다. */
+:root {
+  --app-header-h: 56px;
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-bg-thick: rgba(255, 255, 255, 0.8);
+  --glass-edge: rgba(255, 255, 255, 0.6);
+  --glass-line: rgba(15, 23, 42, 0.08);
+  --glass-blur: blur(20px) saturate(180%);
+  --glass-blur-thick: blur(32px) saturate(180%);
+  --shadow-float: 0 1px 0 rgba(15, 23, 42, 0.04), 0 16px 40px -16px rgba(15, 23, 42, 0.22);
 }
-.pop { animation: pop 0.25s ease-out; }
+.glass {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+.glass-thick {
+  background: var(--glass-bg-thick);
+  -webkit-backdrop-filter: var(--glass-blur-thick);
+  backdrop-filter: var(--glass-blur-thick);
+  box-shadow: var(--shadow-float);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass, .glass-thick { background: rgba(255, 255, 255, 0.97); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass, .glass-thick { background: #ffffff; -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+@media (prefers-contrast: more) {
+  .glass, .glass-thick { background: #ffffff; -webkit-backdrop-filter: none; backdrop-filter: none; outline: 1px solid #1f2937; }
+}
+
+.press {
+  transition-property: transform, color, background-color, border-color, box-shadow, opacity;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+.press:active:not(:disabled):not([aria-disabled="true"]) { transform: scale(0.97); transition-duration: 60ms; }
+@media (prefers-reduced-motion: reduce) {
+  .press:active:not(:disabled):not([aria-disabled="true"]) { transform: none; opacity: 0.8; }
+}
+
+::selection { background: #cfe0ff; color: inherit; }
+:focus-visible { outline-color: #2459c4; }

@@ -3,11 +3,14 @@
 // AI 스토리보드 36칸 표(훅 방식 4줄 × 전개 9칸)와 뽑힌 4장의 카드.
 // 움직임: 칸이 만들어지는 대로 회색 → 색으로 켜짐 → 36칸이 차면 고르는 동안 빛줄이 표를 훑음
 // → 32칸은 물러나고 고른 4칸이 떠오름 → 아래 카드 4장으로 펼쳐짐.
-// 새 라이브러리 없이 CSS 애니메이션만 쓴다. '움직임 줄이기' 설정이면 움직임 없이 같은 결과만 보여 준다.
+// 움직임은 Motion 스프링(lib/motion.ts, 튕김 없음)으로: 도중에 새 상태가 와도 지금 위치에서 이어 간다.
+// 시간에 따라 도는 것(기다림 깜박임, 빛줄, 단계 점)만 CSS로 둔다. '움직임 줄이기'면 위치·크기 움직임 없이 결과만 보인다.
 
 import { useEffect, useRef, useState } from "react";
 import { Gowun_Dodum } from "next/font/google";
 import clsx from "clsx";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { spring, springGentle, springSnappy } from "@/lib/motion";
 import { Check, ChevronDown, PencilLine, Sparkles, X } from "lucide-react";
 import type { StoryResult, StoryUsed } from "@/lib/chat";
 import type { GridPick, HookRow, VariantCol } from "@/lib/storyGrid";
@@ -62,25 +65,11 @@ const BEAM_S = 1.8; // 빛줄이 표를 한 번 훑는 시간(초)
 
 const CSS = `
 @keyframes sg-wait { 0%,100% { opacity: .55 } 50% { opacity: 1 } }
-@keyframes sg-pop { 0% { transform: scale(.8); opacity: 0 } 100% { transform: scale(1); opacity: 1 } }
 @keyframes sg-beam { from { left: -24% } to { left: 104% } }
-@keyframes sg-scan { 0%,100% { filter: saturate(1); transform: translateY(0) } 7% { filter: saturate(2.4) brightness(.98); transform: translateY(-2px) } 16% { filter: saturate(1); transform: translateY(0) } }
-@keyframes sg-unfold { from { opacity: 0; transform: translateY(-14px) scale(.97); clip-path: inset(0 0 100% 0 round 12px) } to { opacity: 1; transform: none; clip-path: inset(0 0 0 0 round 12px) } }
+@keyframes sg-scan { 0%,100% { filter: saturate(1); translate: 0 0 } 7% { filter: saturate(2.4) brightness(.98); translate: 0 -2px } 16% { filter: saturate(1); translate: 0 0 } }
 @keyframes sg-dot { 0%,100% { transform: scale(1); opacity: 1 } 50% { transform: scale(1.6); opacity: .5 } }
 @media (prefers-reduced-motion: reduce) { .sg-anim { animation: none !important; transition: none !important } }
 `;
-
-function useReducedMotion() {
-  const [reduce, setReduce] = useState(false);
-  useEffect(() => {
-    const m = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduce(m.matches);
-    const on = () => setReduce(m.matches);
-    m.addEventListener("change", on);
-    return () => m.removeEventListener("change", on);
-  }, []);
-  return reduce;
-}
 
 function useElapsed(startedAt: number, running: boolean, finalMs?: number) {
   const [now, setNow] = useState(() => Date.now());
@@ -93,11 +82,11 @@ function useElapsed(startedAt: number, running: boolean, finalMs?: number) {
 }
 
 export function StoryGrid({ data, editingId, onEdit }: { data: GridData; editingId?: string; onEdit: (id: string, story: StoryResult, rank: number) => void }) {
-  const reduce = useReducedMotion();
+  const reduce = !!useReducedMotion();
   const gridRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<number | null>(null);
-  const [tip, setTip] = useState<{ left: number; top: number } | null>(null);
+  const [tip, setTip] = useState<{ left: number; top: number; origin: number } | null>(null);
   const [stage, setStage] = useState(0); // 0 = 아직, 1 = 4칸 떠오름, 2 = 카드 펼침
   const [cardHover, setCardHover] = useState<string | null>(null);
 
@@ -111,7 +100,7 @@ export function StoryGrid({ data, editingId, onEdit }: { data: GridData; editing
   useEffect(() => {
     if (!revealed) return setStage(0);
     setStage(1);
-    const t = setTimeout(() => setStage(2), reduce ? 0 : 1200);
+    const t = setTimeout(() => setStage(2), reduce ? 0 : 1000);
     return () => clearTimeout(t);
   }, [revealed, reduce]);
 
@@ -128,7 +117,9 @@ export function StoryGrid({ data, editingId, onEdit }: { data: GridData; editing
     const w = Math.min(272, box.clientWidth);
     const center = el.offsetLeft + el.offsetWidth / 2;
     setHover(k);
-    setTip({ left: Math.max(0, Math.min(center - w / 2, box.clientWidth - w)), top: el.offsetTop });
+    const left = Math.max(0, Math.min(center - w / 2, box.clientWidth - w));
+    // 말풍선은 그 칸에서 자라나듯 열린다(변형 기준점 = 칸의 가운데)
+    setTip({ left, top: el.offsetTop, origin: center - left });
   }
 
   const step = data.phase === "picking" ? 2 : data.phase === "done" ? 3 : 1;
@@ -143,7 +134,7 @@ export function StoryGrid({ data, editingId, onEdit }: { data: GridData; editing
       {/* 단계와 진행 */}
       <div className="mb-3 flex items-center gap-x-2 sm:gap-x-3">
         <Sparkles size={15} className="hidden shrink-0 text-blue-500 sm:block" />
-        <ol className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-1 text-[12px] sm:gap-x-1.5 sm:text-[12.5px]">
+        <ol className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-1 text-[0.75rem] sm:gap-x-1.5 sm:text-[0.78125rem]">
           {[["36개 만들기", make], ["4개 고르기", pick], ["카드 4장", ""]].map(([label, model], i) => {
             const on = step === i + 1 && running;
             const past = step > i + 1 || (data.phase === "done" && step === i + 1);
@@ -159,13 +150,13 @@ export function StoryGrid({ data, editingId, onEdit }: { data: GridData; editing
             );
           })}
         </ol>
-        <span className="num ml-auto shrink-0 text-[12.5px] font-semibold text-gray-500">{(elapsed / 1000).toFixed(1)}초</span>
+        <span className="num ml-auto shrink-0 text-[0.78125rem] font-semibold text-gray-500">{(elapsed / 1000).toFixed(1)}초</span>
       </div>
 
       <div className="mb-3">
-        <div className="mb-1 flex items-baseline justify-between gap-2 text-[12px] text-gray-500">
+        <div className="mb-1 flex items-baseline justify-between gap-2 text-[0.75rem] text-gray-500">
           <span className="shrink-0">
-            <b className="num text-[13px] text-gray-900">{filled}</b>/36 완성{failed > 0 && <span className="text-gray-400"> · 실패 {failed}</span>}
+            <b className="num text-[0.8125rem] text-gray-900">{filled}</b>/36 완성{failed > 0 && <span className="text-gray-500"> · 실패 {failed}</span>}
           </span>
           <span className="min-w-0 truncate" aria-live="polite">
             {data.phase === "connecting" && "준비 중…"}
@@ -176,7 +167,7 @@ export function StoryGrid({ data, editingId, onEdit }: { data: GridData; editing
           </span>
         </div>
         <div className="h-1 overflow-hidden rounded-full bg-gray-100">
-          <div className="sg-anim h-full rounded-full bg-blue-500 transition-[width] duration-300" style={{ width: `${(filled / 36) * 100}%` }} />
+          <motion.div className="h-full origin-left rounded-full bg-blue-500" initial={false} animate={{ scaleX: filled / 36 }} transition={spring} />
         </div>
       </div>
 
@@ -186,15 +177,15 @@ export function StoryGrid({ data, editingId, onEdit }: { data: GridData; editing
           {data.rows.map((r, i) => (
             <div key={r.key} title={r.desc} className="flex h-7 items-center gap-1.5 sm:h-14">
               <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: TONES[i].deep }} />
-              <span className="text-[11px] font-semibold text-gray-700 sm:hidden">{SHORT[r.key] ?? r.label}</span>
-              <span className="hidden w-[5.5rem] text-[12px] font-semibold leading-tight text-gray-700 sm:block">{r.label}</span>
+              <span className="text-[0.6875rem] font-semibold text-gray-700 sm:hidden">{SHORT[r.key] ?? r.label}</span>
+              <span className="hidden w-[5.5rem] text-[0.75rem] font-semibold leading-tight text-gray-700 sm:block">{r.label}</span>
             </div>
           ))}
         </div>
         <div className="min-w-0 flex-1">
           <div className="mb-1 grid h-4 grid-cols-9 gap-1">
             {data.cols.map((c, j) => (
-              <div key={j} title={`${c.desc}\n소재: ${c.material}`} className="truncate text-center text-[11px] leading-4 text-gray-500">
+              <div key={j} title={`${c.desc}\n소재: ${c.material}`} className="truncate text-center text-[0.6875rem] leading-4 text-gray-500">
                 <span className="sm:hidden">{j + 1}</span>
                 <span className="hidden sm:inline">{c.label}</span>
               </div>
@@ -219,34 +210,46 @@ export function StoryGrid({ data, editingId, onEdit }: { data: GridData; editing
                       ? `0 0 0 2px ${t.deep}`
                       : `inset 0 0 0 1px ${t.edge}`;
                   return (
-                    <button
+                    <motion.button
                       key={id}
                       type="button"
                       aria-label={`${data.rows[row]?.label} · ${data.cols[col]?.label}${c.status === "ok" ? `: ${c.story.title}` : c.status === "fail" ? ": 만들지 못함" : ": 만드는 중"}${rank ? ` (${rank}위)` : ""}`}
                       onMouseEnter={(e) => showTip(k, e.currentTarget)}
                       onFocus={(e) => showTip(k, e.currentTarget)}
+                      // 휴대폰처럼 마우스를 올릴 수 없는 화면: 누르면 말풍선이 뜬다
+                      onClick={(e) => showTip(k, e.currentTarget)}
                       onBlur={() => { setHover(null); setTip(null); }}
+                      initial={false}
+                      // 고른 칸은 순위 차례로 떠오르고, 나머지는 물러난다(스프링, 튕김 없음)
+                      animate={{ scale: picked ? 1.07 : dim ? 0.96 : 1, opacity: dim ? 0.6 : 1, filter: dim ? "saturate(0.25)" : "saturate(1)" }}
+                      transition={{ ...spring, delay: picked ? (rank - 1) * 0.14 : 0 }}
+                      whileTap={{ scale: picked ? 1.03 : 0.95 }}
                       className={clsx(
-                        "sg-anim relative h-7 rounded-[5px] text-left outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:h-14 sm:rounded-md",
-                        "transition-[scale,transform,opacity,filter,box-shadow,background-color] duration-500 ease-[cubic-bezier(.16,1,.3,1)]",
-                        c.status === "wait" && ["bg-gray-100", running && "animate-[sg-wait_1.4s_ease-in-out_infinite]"],
-                        c.status === "fail" && "border border-dashed border-gray-200 bg-gray-50",
-                        ok && data.phase === "filling" && "animate-[sg-pop_.45s_cubic-bezier(.16,1,.3,1)_both]",
-                        ok && data.phase === "picking" && "animate-[sg-scan_1.8s_ease-in-out_infinite]",
-                        dim && "scale-[.96] opacity-60 saturate-[.25]",
-                        picked && "z-10 scale-[1.07]",
+                        "relative h-7 rounded-[5px] text-left outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:h-14 sm:rounded-md",
+                        "transition-[box-shadow,background-color] duration-300",
+                        picked && "z-10",
+                        c.status === "fail" ? "border border-dashed border-gray-200 bg-gray-50" : "bg-gray-100",
+                        c.status === "wait" && running && "sg-anim animate-[sg-wait_1.4s_ease-in-out_infinite]",
                       )}
                       style={{
-                        animationDelay: data.phase === "picking" ? `${0.14 + col * 0.154}s` : c.status === "wait" ? `${(row + col) * 70}ms` : undefined,
-                        transitionDelay: picked ? `${(rank - 1) * 140}ms` : undefined,
-                        ...(ok ? { background: picked ? t.bgPicked : t.bg, color: t.ink, boxShadow: shadow } : {}),
+                        animationDelay: c.status === "wait" ? `${(row + col) * 70}ms` : undefined,
+                        ...(ok ? { boxShadow: shadow } : {}),
                       }}
                     >
                       {ok && (
-                        <span className={clsx(cellFont.className, "pointer-events-none mx-1.5 my-1 hidden overflow-hidden text-[11.5px] leading-[1.32] tracking-[-0.01em] sm:line-clamp-3")}>{cellTitle(c.story)}</span>
+                        // 회색 칸 안에서 파스텔 칸이 자라 나온다(스프링). 고르는 동안에는 빛줄에 맞춰 반짝인다(CSS, 위치 대신 translate 속성만 써서 스프링과 겹치지 않음)
+                        <motion.span
+                          initial={{ opacity: 0, scale: 0.82 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={springSnappy}
+                          className={clsx("pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]", data.phase === "picking" && "sg-anim animate-[sg-scan_1.8s_ease-in-out_infinite]")}
+                          style={{ background: picked ? t.bgPicked : t.bg, color: t.ink, animationDelay: data.phase === "picking" ? `${0.14 + col * 0.154}s` : undefined }}
+                        >
+                          <span className={clsx(cellFont.className, "mx-1.5 my-1 hidden overflow-hidden text-[0.71875rem] leading-[1.32] sm:line-clamp-3")}>{cellTitle(c.story)}</span>
+                        </motion.span>
                       )}
                       {c.status === "fail" && <X size={12} className="absolute inset-0 m-auto text-gray-300" />}
-                    </button>
+                    </motion.button>
                   );
                 })}
 
@@ -259,20 +262,26 @@ export function StoryGrid({ data, editingId, onEdit }: { data: GridData; editing
               </div>
             )}
 
+            <AnimatePresence>
             {hover != null && tip && hoverCell && (
-              <div
+              <motion.div
+                key="tip"
                 role="tooltip"
-                className="pointer-events-none absolute z-30 w-[272px] max-w-full -translate-y-[calc(100%+8px)] rounded-lg border border-gray-200 bg-white p-3 text-left shadow-lg"
-                style={{ left: tip.left, top: tip.top }}
+                initial={{ opacity: 0, scale: 0.96, y: 4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: 4 }}
+                transition={springSnappy}
+                className="pointer-events-none absolute z-30 w-[272px] max-w-full -translate-y-[calc(100%+8px)] rounded-xl border border-gray-200 bg-white p-3 text-left shadow-[0_12px_32px_-12px_rgba(15,23,42,0.3)]"
+                style={{ left: tip.left, top: tip.top, transformOrigin: `${tip.origin}px 100%` }}
               >
-                <p className="text-[11px] font-semibold text-gray-400">
+                <p className="text-[0.6875rem] font-semibold text-gray-500">
                   {data.rows[Math.floor(hover / 9)]?.label} · {data.cols[hover % 9]?.label} · 소재 {data.cols[hover % 9]?.material}
                 </p>
                 {hoverCell.status === "ok" ? (
                   <>
-                    <p className={clsx(cellFont.className, "mt-1 text-[14px] leading-snug text-gray-900")}>{cellTitle(hoverCell.story)}</p>
+                    <p className={clsx(cellFont.className, "mt-1 text-[0.875rem] leading-snug text-gray-900")}>{cellTitle(hoverCell.story)}</p>
                     {hoverCell.story.cuts[0] && (
-                      <p className="mt-1.5 text-[12px] leading-relaxed text-gray-600">
+                      <p className="mt-1.5 text-[0.75rem] leading-relaxed text-gray-600">
                         <span className="font-semibold text-gray-800">첫 컷 </span>
                         {hoverCell.story.cuts[0].visual}
                         <span className="mt-0.5 block font-medium text-gray-900">“{hoverCell.story.cuts[0].caption}”</span>
@@ -280,17 +289,18 @@ export function StoryGrid({ data, editingId, onEdit }: { data: GridData; editing
                     )}
                   </>
                 ) : (
-                  <p className="mt-1 text-[12px] text-gray-500">{hoverCell.status === "fail" ? (hoverCell.error === "time_cutoff" || hoverCell.error === "aborted" ? "시간 안에 만들지 못한 칸이에요." : "이 칸은 만들지 못했어요.") : "만드는 중이에요."}</p>
+                  <p className="mt-1 text-[0.75rem] text-gray-500">{hoverCell.status === "fail" ? (hoverCell.error === "time_cutoff" || hoverCell.error === "aborted" ? "시간 안에 만들지 못한 칸이에요." : "이 칸은 만들지 못했어요.") : "만드는 중이에요."}</p>
                 )}
-              </div>
+              </motion.div>
             )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
 
       {data.used && data.used.viral.length > 0 && (
-        <details className="mt-3 text-[12.5px] text-gray-500">
-          <summary className="cursor-pointer font-semibold">참고한 {data.used.basis} (분석 칸까지 AI에 보냈어요)</summary>
+        <details className="mt-3 text-[0.78125rem] text-gray-500">
+          <summary className="press w-fit cursor-pointer rounded-md font-semibold">참고한 {data.used.basis} (분석 칸까지 AI에 보냈어요)</summary>
           <ol className="mt-1.5 space-y-1">
             {data.used.viral.map((v, i) => (
               <li key={v.id}>
@@ -304,12 +314,12 @@ export function StoryGrid({ data, editingId, onEdit }: { data: GridData; editing
         </details>
       )}
 
-      {data.phase === "error" && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-[13px] text-red-600">{data.error ?? "스토리보드를 만들지 못했어요. 잠시 뒤 다시 시도해 주세요."}</p>}
+      {data.phase === "error" && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-[0.8125rem] text-red-600">{data.error ?? "스토리보드를 만들지 못했어요. 잠시 뒤 다시 시도해 주세요."}</p>}
 
       {/* 뽑힌 4장 */}
       {stage >= 2 && (
         <div className="mt-4">
-          <p className="mb-2 text-[12.5px] text-gray-500">
+          <p className="mb-2 text-[0.78125rem] text-gray-500">
             36칸 중 {filled}칸 완성{data.note ? <span className="text-amber-700"> · {data.note}</span> : null}
           </p>
           <div ref={cardsRef} className="grid scroll-mt-4 items-start gap-3 sm:grid-cols-2">
@@ -325,7 +335,7 @@ export function StoryGrid({ data, editingId, onEdit }: { data: GridData; editing
                   row={Math.floor(k / 9)}
                   hook={data.rows[Math.floor(k / 9)]?.label ?? ""}
                   col={data.cols[k % 9]}
-                  delay={i * 110}
+                  delay={i * 0.09}
                   editing={editingId === p.id}
                   onHover={(on) => setCardHover(on ? p.id : null)}
                   onEdit={() => onEdit(p.id, cell.story, p.rank)}
@@ -342,55 +352,58 @@ export function StoryGrid({ data, editingId, onEdit }: { data: GridData; editing
 function PickCard({ pick, story, row, hook, col, delay, editing, onHover, onEdit }: { pick: GridPick; story: StoryResult; row: number; hook: string; col?: VariantCol; delay: number; editing: boolean; onHover: (on: boolean) => void; onEdit: () => void }) {
   const tone = TONES[row] ?? TONES[0];
   return (
-    <article
+    <motion.article
       onMouseEnter={() => onHover(true)}
       onMouseLeave={() => onHover(false)}
-      className={clsx("sg-anim min-w-0 animate-[sg-unfold_.6s_cubic-bezier(.2,.8,.2,1)_both] rounded-xl border bg-white p-3.5 shadow-xs sm:p-4", editing ? "border-blue-400 ring-2 ring-blue-100" : "border-gray-200")}
-      style={{ animationDelay: `${delay}ms` }}
+      // 표에서 떨어져 나오듯 위에서 아래로 펼쳐진다(스프링, 튕김 없음)
+      initial={{ opacity: 0, y: -14, clipPath: "inset(0% 0% 100% 0% round 12px)" }}
+      animate={{ opacity: 1, y: 0, clipPath: "inset(0% 0% 0% 0% round 12px)" }}
+      transition={{ ...springGentle, delay }}
+      className={clsx("min-w-0 rounded-xl border bg-white p-3.5 shadow-xs sm:p-4", editing ? "border-blue-400 ring-2 ring-blue-100" : "border-gray-200")}
     >
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="num grid h-7 w-7 shrink-0 place-items-center rounded-full text-[13px] font-bold" style={{ background: tone.bgPicked, color: tone.ink, boxShadow: `inset 0 0 0 1px ${tone.edge}` }}>
+        <span className="num grid h-7 w-7 shrink-0 place-items-center rounded-full text-[0.8125rem] font-bold" style={{ background: tone.bgPicked, color: tone.ink, boxShadow: `inset 0 0 0 1px ${tone.edge}` }}>
           {pick.rank}
         </span>
         <span className="rounded-md px-2 py-0.5 text-xs font-semibold" style={{ background: tone.bg, color: tone.ink }}>{hook}</span>
-        {col && <span className="truncate text-xs text-gray-400">{col.label}</span>}
+        {col && <span className="truncate text-xs text-gray-500">{col.label}</span>}
         {pick.score != null && (
-          <span className="num ml-auto text-[15px] font-bold text-gray-900">
+          <span className="num ml-auto text-[0.9375rem] font-bold text-gray-900">
             {pick.score}
-            <span className="text-[11px] font-medium text-gray-400">점</span>
+            <span className="text-[0.6875rem] font-medium text-gray-500">점</span>
           </span>
         )}
       </div>
-      <h4 className="mt-2 text-[15px] font-bold leading-snug">{story.title}</h4>
-      <p className="mt-1 text-[13px] leading-relaxed text-gray-600">
+      <h4 className="mt-2 text-[0.9375rem] font-bold leading-snug">{story.title}</h4>
+      <p className="mt-1 text-[0.8125rem] leading-relaxed text-gray-600">
         <span className="font-semibold text-gray-800">고른 이유 </span>
         {pick.reason}
       </p>
       {story.cuts[0] && (
-        <p className="mt-2 rounded-md bg-gray-50 px-3 py-2 text-[13px] leading-relaxed">
-          <span className="text-gray-400">첫 컷 </span>“{story.cuts[0].caption}”
+        <p className="mt-2 rounded-md bg-gray-50 px-3 py-2 text-[0.8125rem] leading-relaxed">
+          <span className="text-gray-500">첫 컷 </span>“{story.cuts[0].caption}”
         </p>
       )}
       <details className="group mt-2">
-        <summary className="flex cursor-pointer list-none items-center gap-1 text-[12.5px] font-semibold text-gray-500 hover:text-gray-900">
+        <summary className="press flex w-fit cursor-pointer list-none items-center gap-1 rounded-md text-[0.78125rem] font-semibold text-gray-500 hover:text-gray-900">
           <ChevronDown size={14} className="transition-transform group-open:rotate-180" />
           <span className="group-open:hidden">컷·자막·캡션 펼치기</span>
           <span className="hidden group-open:inline">접기</span>
         </summary>
         <ol className="mt-2 space-y-2 border-l-2 border-gray-100 pl-3">
           {story.cuts.map((c, i) => (
-            <li key={i} className="text-[13px] leading-relaxed">
-              <span className="num mr-1.5 text-[11.5px] text-gray-400">{c.start_s}–{c.end_s}초</span>
+            <li key={i} className="text-[0.8125rem] leading-relaxed">
+              <span className="num mr-1.5 text-[0.71875rem] text-gray-500">{c.start_s}–{c.end_s}초</span>
               <span className="text-gray-700">{c.visual}</span>
               <span className="block font-medium text-gray-900">“{c.caption}”</span>
             </li>
           ))}
         </ol>
-        {story.caption && <p className="mt-2 whitespace-pre-line text-[13px]"><span className="font-semibold">캡션 </span>{story.caption}</p>}
-        {story.hashtags.length > 0 && <p className="mt-1 break-words text-[12.5px] text-blue-600">{story.hashtags.map((h) => `#${h}`).join(" ")}</p>}
-        {story.why && <p className="mt-2 text-[12.5px] leading-relaxed text-gray-500"><span className="font-semibold text-gray-600">빌린 구조 </span>{story.why}</p>}
+        {story.caption && <p className="mt-2 whitespace-pre-line text-[0.8125rem]"><span className="font-semibold">캡션 </span>{story.caption}</p>}
+        {story.hashtags.length > 0 && <p className="mt-1 break-words text-[0.78125rem] text-blue-600">{story.hashtags.map((h) => `#${h}`).join(" ")}</p>}
+        {story.why && <p className="mt-2 text-[0.78125rem] leading-relaxed text-gray-500"><span className="font-semibold text-gray-600">빌린 구조 </span>{story.why}</p>}
         {story.cautions.length > 0 && (
-          <ul className="mt-2 list-disc space-y-0.5 pl-5 text-[12.5px] text-amber-700">
+          <ul className="mt-2 list-disc space-y-0.5 pl-5 text-[0.78125rem] text-amber-700">
             {story.cautions.map((c, i) => <li key={i}>{c}</li>)}
           </ul>
         )}
@@ -399,12 +412,12 @@ function PickCard({ pick, story, row, hook, col, delay, editing, onHover, onEdit
         <button
           type="button"
           onClick={onEdit}
-          className={clsx("inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 text-[13px] font-semibold transition-colors", editing ? "bg-blue-500 text-white" : "border border-gray-200 bg-white text-gray-900 hover:bg-gray-50")}
+          className={clsx("press inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 text-[0.8125rem] font-semibold", editing ? "bg-blue-600 text-white" : "border border-gray-200 bg-white text-gray-900 hover:bg-gray-50")}
         >
           <PencilLine size={13} /> {editing ? "이 안을 고치는 중" : "이 안 고치기"}
         </button>
         {story.material && <Chip>소재: {story.material}</Chip>}
       </div>
-    </article>
+    </motion.article>
   );
 }

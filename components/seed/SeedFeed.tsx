@@ -13,13 +13,20 @@ const firstSentence = (s: string) => {
   return (m ? m[0] : line).trim();
 };
 const lines = (s: string) => s.split("\n").map((x) => x.trim()).filter(Boolean);
+/** 화면 위에 붙은 반투명 머리줄 높이(px, Shell의 --app-header-h). 그 아래만 실제로 보이는 칸이다. */
+const headerPx = () => {
+  const root = document.documentElement, v = getComputedStyle(root).getPropertyValue("--app-header-h").trim();
+  const n = parseFloat(v) || 0;
+  return v.endsWith("rem") ? n * (parseFloat(getComputedStyle(root).fontSize) || 16) : n;
+};
 
 /** 땅속 구역: 화면에 고정된 뿌리 층 위로, 릴스가 인스타처럼 한 편씩 화면 가득 넘어간다. */
 export function SeedFeed({ items, grown, capture = false }: { items: FeedItem[]; grown: boolean; capture?: boolean }) {
   const wrap = useRef<HTMLDivElement>(null);
   const cv = useRef<HTMLCanvasElement>(null);
   const layer = useRef<ReturnType<typeof createRootLayer> | null>(null);
-  const [active, setActive] = useState(0);
+  // 지금 편: 화면에 60% 넘게 들어온 릴스. 처음엔 없음(-1)이라, 씨앗 그림을 보는 동안 첫 영상이 보이지 않는 채로 재생되지 않는다.
+  const [active, setActive] = useState(-1);
   const [muted, setMuted] = useState(true);
 
   useEffect(() => {
@@ -42,15 +49,22 @@ export function SeedFeed({ items, grown, capture = false }: { items: FeedItem[];
 
   useEffect(() => {
     const w = wrap.current!;
-    const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) setActive(Number((e.target as HTMLElement).dataset.i)); }), { threshold: 0.6 });
+    // 머리줄에 가린 부분은 빼고, 보이는 칸에 60% 넘게 들어온 편이 지금 편이다.
+    // 빨리 넘기면 들어오는 편과 나가는 편이 한 번에 보고되므로, 비율이 0.6 이상인 편만 고른다(나가는 편으로 되돌아가지 않게).
+    const io = new IntersectionObserver(
+      (es) => es.forEach((e) => { if (e.intersectionRatio >= 0.6) setActive(Number((e.target as HTMLElement).dataset.i)); }),
+      { threshold: 0.6, rootMargin: `${-headerPx()}px 0px 0px 0px` },
+    );
     w.querySelectorAll(".seed-reel").forEach((el) => io.observe(el));
-    const io2 = new IntersectionObserver(([e]) => { if (e.isIntersecting) layer.current?.grow(); }, { threshold: 0.02 });
+    // 땅속 구역이 화면에 조금이라도 들어오면 뿌리를 키운다. 구역이 릴스 수만큼 길어서(100편이면 화면의 약 100배)
+    // 비율 기준(예전 0.02)은 50편이 넘으면 닿을 수 없어 뿌리가 영영 자라지 않았다. 그래서 0(닿기만 하면)으로 본다.
+    const io2 = new IntersectionObserver(([e]) => { if (e.isIntersecting) layer.current?.grow(); }, { threshold: 0 });
     io2.observe(w);
     return () => { io.disconnect(); io2.disconnect(); };
   }, [items]);
 
   useEffect(() => {
-    const it = items[active];
+    const it = items[Math.max(active, 0)]; // 첫 편이 들어오기 전에도 첫 편의 훅 글씨는 미리 보인다(예전과 같음)
     if (it && !capture) layer.current?.show(firstSentence(it.hookStructure));
   }, [active, items, capture]);
 
@@ -64,7 +78,7 @@ export function SeedFeed({ items, grown, capture = false }: { items: FeedItem[];
             <div className="seed-video">
               {capture ? <div className="seed-video-ph seed-video-label">릴스 영상 자리 · @{it.username}</div> : Math.abs(i - active) <= 1 ? <FeedMedia item={it} active={i === active} muted={muted} /> : <div className="seed-video-ph" />}
               {!capture && it.videoUrl && i === active && (
-                <button type="button" className="seed-sound" onClick={() => setMuted((m) => !m)}>{muted ? "소리 켜기" : "소리 끄기"}</button>
+                <button type="button" className="seed-sound press" onClick={() => setMuted((m) => !m)}>{muted ? "소리 켜기" : "소리 끄기"}</button>
               )}
             </div>
             <div className="seed-stem" aria-hidden="true" />
@@ -73,7 +87,7 @@ export function SeedFeed({ items, grown, capture = false }: { items: FeedItem[];
                 <span className="seed-rank num">#{it.rank ?? i + 1}</span>
                 <strong className="seed-user">@{it.username}</strong>
                 <span className={"seed-chip " + (it.source === "foreign" ? "gray" : "blue")}>{it.source === "foreign" ? "해외" : "국내"}</span>
-                <a className="seed-insta" href={it.url} target="_blank" rel="noreferrer">인스타에서 보기 ↗</a>
+                <a className="seed-insta press" href={it.url} target="_blank" rel="noreferrer">인스타에서 보기 ↗</a>
               </header>
               <dl className="seed-stats">
                 {([["조회", it.plays], ["좋아요", it.likes], ["댓글", it.comments], ...(it.shares != null ? [["공유", it.shares]] : [])] as [string, number | null][]).map(([k, v]) => (

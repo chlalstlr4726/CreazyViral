@@ -20,7 +20,7 @@ export function LinkPost({ cardId, compact = false }: { cardId: string; compact?
         <a href={linked} target="_blank" rel="noreferrer" className="truncate text-blue-600 hover:underline">
           {linked.replace("https://www.instagram.com", "instagram.com")}
         </a>
-        <span className="shrink-0 text-xs text-gray-400">{post ? "연결됨" : "성과 수집 대기"}</span>
+        <span className="shrink-0 text-xs text-gray-500">{post ? "연결됨" : "성과 수집 대기"}</span>
       </div>
     );
   }
@@ -46,7 +46,7 @@ export function LinkPost({ cardId, compact = false }: { cardId: string; compact?
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="게시한 인스타 URL 붙여넣기"
-            className="h-10 w-full rounded-md border border-gray-200 bg-gray-50 pr-3 pl-8 text-sm outline-none placeholder:text-gray-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+            className="h-10 w-full rounded-md border border-gray-200 bg-gray-50 pr-3 pl-8 text-sm outline-none placeholder:text-gray-500 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
           />
         </div>
         <Button type="submit" size={compact ? "sm" : "md"} className={compact ? "h-10" : ""}>

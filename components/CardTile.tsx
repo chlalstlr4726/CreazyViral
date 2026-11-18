@@ -2,24 +2,60 @@
 
 import { ReadableText } from "./ReadableText";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
+import { motion } from "motion/react";
+import { spring } from "@/lib/motion";
 import { ArrowRight, Check, ChevronDown, Clock, Music, RefreshCw, Star, X } from "lucide-react";
 import type { Card } from "@/lib/types";
 import { PASS_REASONS } from "@/lib/types";
-import { Button, Chip, Difficulty, TypeBadge } from "./ui";
+import { Button, buttonClass, Chip, Difficulty, TypeBadge } from "./ui";
 
+/**
+ * 패스 이유 창. 부르는 쪽이 <AnimatePresence>로 감싸면 닫힐 때도 들어온 길(아래 → 위)로 돌아간다.
+ * 집중이 필요한 일이라 뒤를 어둡게 가린다. Esc로 닫는다.
+ */
 export function PassDialog({ onClose, onConfirm }: { onClose: () => void; onConfirm: (reason: string) => void }) {
   const [reason, setReason] = useState<string | null>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const prev = document.activeElement as HTMLElement | null;
+    panel.current?.focus({ preventScroll: true });
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      prev?.focus?.({ preventScroll: true });
+    };
+  }, [onClose]);
   return (
-    <div className="fixed inset-0 z-40 grid place-items-center bg-gray-950/40 p-4" onClick={onClose}>
-      <div className="pop w-full max-w-md rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+    <motion.div
+      className="fixed inset-0 z-50 grid place-items-center bg-gray-950/30 p-4"
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={spring}
+    >
+      <motion.div
+        ref={panel}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pass-dialog-title"
+        tabIndex={-1}
+        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-[0_24px_60px_-20px_rgba(15,23,42,0.45)] outline-none"
+        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0, y: 24, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 24, scale: 0.97 }}
+        transition={spring}
+      >
         <div className="flex items-start justify-between">
           <div>
-            <h3 className="text-lg font-bold">이 카드를 패스하는 이유</h3>
+            <h3 id="pass-dialog-title" className="text-lg font-bold">이 카드를 패스하는 이유</h3>
             <p className="mt-1 text-sm text-gray-500">고른 사유는 다음 카드 추천을 개선하는 데 쓰여요.</p>
           </div>
-          <button onClick={onClose} className="rounded-md p-1 text-gray-400 hover:bg-gray-100" aria-label="닫기">
+          <button onClick={onClose} className="press rounded-md p-1 text-gray-500 hover:bg-gray-100" aria-label="닫기">
             <X size={18} />
           </button>
         </div>
@@ -29,7 +65,7 @@ export function PassDialog({ onClose, onConfirm }: { onClose: () => void; onConf
               key={r}
               onClick={() => setReason(r)}
               className={clsx(
-                "rounded-md border px-3.5 py-2 text-sm font-medium transition-colors",
+                "press rounded-md border px-3.5 py-2 text-sm font-medium",
                 reason === r ? "border-blue-500 bg-blue-50 text-blue-600" : "border-gray-200 text-gray-700 hover:bg-gray-50",
               )}
             >
@@ -45,8 +81,8 @@ export function PassDialog({ onClose, onConfirm }: { onClose: () => void; onConf
             패스하기
           </Button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -94,11 +130,11 @@ export function CardTile({
         {status === "passed" && <Chip tone="red">패스: {passReason}</Chip>}
       </div>
 
-      <h3 className="mt-4 text-[22px] font-bold leading-snug tracking-tight">{card.title}</h3>
+      <h3 className="mt-4 text-[1.375rem] font-bold leading-snug tracking-tight">{card.title}</h3>
 
       <div className="card-hook mt-5 rounded-lg bg-gray-50 p-4">
         <div className="text-xs font-semibold text-gray-600">첫 장면</div>
-        <p className="mt-1 text-[15px] font-semibold text-gray-900">“{hook.caption}”</p>
+        <p className="mt-1 text-[0.9375rem] font-semibold text-gray-900">“{hook.caption}”</p>
       </div>
 
       <details className="group mt-4">
@@ -135,18 +171,16 @@ export function CardTile({
 
       <div className="mt-6 flex gap-2">
         {status === "selected" ? (
-          <Link href={`/cards/${card.card_id}`} className="flex-1">
-            <Button className="w-full">
-              스토리보드 보기 <ArrowRight size={16} />
-            </Button>
+          <Link href={`/cards/${card.card_id}`} className={buttonClass({}, "flex-1")}>
+            스토리보드 보기 <ArrowRight size={16} />
           </Link>
         ) : (
           <Button className="flex-1" onClick={onSelect} disabled={status === "passed"}>
             이걸로 선택
           </Button>
         )}
-        <Link href={`/cards/${card.card_id}`}>
-          <Button variant="secondary">상세 보기</Button>
+        <Link href={`/cards/${card.card_id}`} className={buttonClass({ variant: "secondary" })}>
+          상세 보기
         </Link>
       </div>
 

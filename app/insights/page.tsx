@@ -73,7 +73,7 @@ export default function InsightsPage() {
         팀이 고른 카드, 패스 사유, 실제 성과를 바탕으로 점수 로직과 카드 생성 프롬프트를 어떻게 고치면 좋을지 자동으로 정리해요. 표본이 충분할 때만 제안이 나와요.
       </p>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {owners.map((o) => {
           const list = msgs.filter((m) => m.to === o);
           return (
@@ -110,7 +110,7 @@ export default function InsightsPage() {
                         <h3 className="font-semibold leading-snug">{m.title}</h3>
                       </div>
                       <p className="mt-2 text-sm leading-relaxed text-gray-700">{m.suggestion}</p>
-                      <ul className="mt-3 space-y-1 rounded-md bg-gray-50 p-3 text-[13px] text-gray-500">
+                      <ul className="mt-3 space-y-1 rounded-md bg-gray-50 p-3 text-[0.8125rem] text-gray-500">
                         {m.evidence.map((e) => (
                           <li key={e}>{e}</li>
                         ))}
