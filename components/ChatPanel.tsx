@@ -4,19 +4,10 @@ import { useRef, useState } from "react";
 import { PencilLine, Send, Sparkles, X } from "lucide-react";
 import { type AccountId } from "@/lib/accounts";
 import type { StoryResult, StoryUsed } from "@/lib/chat";
-import type { GridEvent } from "@/lib/storyGrid";
 import { useProfiles } from "@/lib/profiles";
-import { StoryGrid, type CellState, type GridData } from "./StoryGrid";
+import { send as sendStory, setTarget as setStoryTarget, useStoryboard, type Target } from "@/lib/storyboardStore";
+import { StoryGrid } from "./StoryGrid";
 import { Button, Chip, Panel, SectionTitle } from "./ui";
-
-type Turn =
-  | { key: number; role: "user"; text: string }
-  | { key: number; role: "assistant"; kind: "grid"; grid: GridData }
-  | { key: number; role: "assistant"; kind: "story"; story: StoryResult; used?: StoryUsed; label?: string }
-  | { key: number; role: "assistant"; kind: "error"; text: string };
-
-/** 고칠 대상: 카드에서 고른 안(grid) 또는 이미 고친 안(story) */
-interface Target { turnKey: number; id: string; story: StoryResult; label: string }
 
 const DEFAULT_MSG = "우리 소재로, 위 바이럴 Top 5 구조에 맞는 스토리보드를 짜줘";
 
@@ -26,11 +17,9 @@ export function ChatPanel({ accountId, days }: { accountId: AccountId; days: 3 |
   const { concept, materials } = profile(accountId);
   const [materialId, setMaterialId] = useState("");
   const [input, setInput] = useState("");
-  const [turns, setTurns] = useState<Turn[]>([]);
-  const [busy, setBusy] = useState(false);
-  const [target, setTarget] = useState<Target | null>(null);
-  const [basis, setBasis] = useState<string | null>(null);
-  const seq = useRef(0);
+  // 진행 상태·결과는 화면 밖 저장소(계정별)에 있다. 계정 탭이나 메뉴를 바꿔 다녀와도 이어서 보인다.
+  const { turns, busy, target, basis } = useStoryboard(accountId);
+  const setTarget = (t: Target | null) => setStoryTarget(accountId, t);
   const inputRef = useRef<HTMLInputElement>(null);
 
   /** 고칠 안을 고르면 입력 칸으로 데려가 바로 쓸 수 있게 한다 */
@@ -47,97 +36,15 @@ export function ChatPanel({ accountId, days }: { accountId: AccountId; days: 3 |
   }
 
   const usable = materials.filter((m) => m.status !== "보관");
-  const nextKey = () => ++seq.current;
-  const patchGrid = (key: number, f: (g: GridData) => GridData) =>
-    setTurns((ts) => ts.map((t) => (t.key === key && t.role === "assistant" && t.kind === "grid" ? { ...t, grid: f(t.grid) } : t)));
-  const replaceTurn = (key: number, next: Turn) => setTurns((ts) => ts.map((t) => (t.key === key ? next : t)));
 
-  async function send(text?: string, forced?: Target) {
+  function send(text?: string, forced?: Target) {
     if (busy) return;
     const editing = forced ?? target;
     const message = (text ?? input).trim() || (editing ? "" : DEFAULT_MSG);
     if (!message) return;
     setInput("");
-    setBusy(true);
-    const userKey = nextKey();
-    const outKey = nextKey();
-    const base = { accountId, message, materialId: materialId || undefined, days, concept, materials };
-
-    if (editing) {
-      setTurns((t) => [...t, { key: userKey, role: "user", text: `${editing.label} 고치기: ${message}` }, { key: outKey, role: "assistant", kind: "error", text: "" }]);
-      try {
-        const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...base, edit: { story: editing.story } }) });
-        const d = await res.json();
-        if (!d.ok) throw new Error(d.error || "failed");
-        const label = `${editing.label} 고친 안`;
-        replaceTurn(outKey, { key: outKey, role: "assistant", kind: "story", story: d.story, used: d.used, label });
-        setTarget({ turnKey: outKey, id: "story", story: d.story, label });
-      } catch {
-        replaceTurn(outKey, { key: outKey, role: "assistant", kind: "error", text: "고치지 못했어요. 잠시 뒤 다시 시도해 주세요." });
-      } finally {
-        setBusy(false);
-      }
-      return;
-    }
-
-    const empty: GridData = { rows: [], cols: [], cells: [], phase: "connecting", picks: [], startedAt: Date.now() };
-    setTurns((t) => [...t, { key: userKey, role: "user", text: message }, { key: outKey, role: "assistant", kind: "grid", grid: empty }]);
-    try {
-      const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(base) });
-      const type = res.headers.get("content-type") ?? "";
-      if (!type.includes("ndjson") || !res.body) {
-        // AI 열쇠가 없을 때의 규칙 기반 초안(표 없음) 또는 오류
-        const d = await res.json();
-        if (!d.ok) throw new Error(d.error || "failed");
-        if (d.used?.basis) setBasis(d.used.basis);
-        replaceTurn(outKey, { key: outKey, role: "assistant", kind: "story", story: d.story, used: d.used });
-        return;
-      }
-      const reader = res.body.getReader();
-      const dec = new TextDecoder();
-      let buf = "";
-      let ended = false;
-      const apply = (e: GridEvent) => {
-        if (e.type === "start") {
-          setBasis(e.used.basis);
-          patchGrid(outKey, (g) => ({ ...g, rows: e.rows, cols: e.cols, cells: Array.from({ length: 36 }, (): CellState => ({ status: "wait" })), used: e.used, models: e.models, phase: "filling" }));
-        } else if (e.type === "cell" || e.type === "cell_fail") {
-          const k = e.row * 9 + e.col;
-          const cell: CellState = e.type === "cell" ? { status: "ok", story: e.story } : { status: "fail", error: e.error };
-          patchGrid(outKey, (g) => ({ ...g, cells: g.cells.map((c, i) => (i === k ? cell : c)) }));
-        } else if (e.type === "pick_start") {
-          patchGrid(outKey, (g) => ({ ...g, phase: "picking" }));
-        } else if (e.type === "picks") {
-          patchGrid(outKey, (g) => ({ ...g, picks: e.picks, mode: e.mode, note: e.note }));
-        } else if (e.type === "done") {
-          ended = true;
-          patchGrid(outKey, (g) => ({ ...g, phase: "done", ms: e.ms, costUsd: e.costUsd }));
-        } else if (e.type === "error") {
-          ended = true;
-          patchGrid(outKey, (g) => ({ ...g, phase: "error", error: e.error === "no_cells" ? "스토리보드를 한 칸도 만들지 못했어요. 잠시 뒤 다시 시도해 주세요." : undefined }));
-        }
-      };
-      for (;;) {
-        const { value, done } = await reader.read();
-        if (value) buf += dec.decode(value, { stream: true });
-        let nl: number;
-        while ((nl = buf.indexOf("\n")) >= 0) {
-          const line = buf.slice(0, nl).trim();
-          buf = buf.slice(nl + 1);
-          if (line) {
-            try {
-              apply(JSON.parse(line) as GridEvent);
-            } catch {}
-          }
-        }
-        if (done) break;
-      }
-      if (!ended) patchGrid(outKey, (g) => ({ ...g, phase: "error", error: "연결이 끊겼어요. 다시 시도해 주세요." }));
-    } catch {
-      replaceTurn(outKey, { key: outKey, role: "assistant", kind: "error", text: "스토리보드를 만들지 못했어요. 잠시 뒤 다시 시도해 주세요." });
-    } finally {
-      setBusy(false);
-    }
+    // 서버와 주고받기는 저장소가 맡는다(이 화면이 사라져도 끝까지 받는다)
+    void sendStory(accountId, { message, materialId, days, concept, materials, editing });
   }
 
   const placeholder = target

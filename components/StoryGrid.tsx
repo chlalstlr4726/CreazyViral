@@ -98,7 +98,6 @@ export function StoryGrid({ data, editingId, onEdit }: { data: GridData; editing
   const cardsRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<number | null>(null);
   const [tip, setTip] = useState<{ left: number; top: number } | null>(null);
-  const [stage, setStage] = useState(0); // 0 = 아직, 1 = 4칸 떠오름, 2 = 카드 펼침
   const [cardHover, setCardHover] = useState<string | null>(null);
 
   const running = data.phase === "connecting" || data.phase === "filling" || data.phase === "picking";
@@ -108,19 +107,26 @@ export function StoryGrid({ data, editingId, onEdit }: { data: GridData; editing
   const pickRank = new Map(data.picks.map((p) => [p.id, p.rank]));
   const revealed = data.phase === "done" && data.picks.length > 0;
 
+  // 다른 계정 탭이나 메뉴에 다녀와 이 표가 다시 그려질 때: 이미 끝난 결과면 빛줄·떠오름·펼침을 다시 틀지 않고
+  // 끝난 모습을 바로 보인다. 진행 중이면 이어서 움직이고, 그때 이미 찬 칸은 다시 튀어나오지 않는다.
+  const [settledOnMount] = useState(() => data.phase === "done");
+  const [okOnMount] = useState(() => new Set(data.cells.flatMap((c, k) => (c.status === "ok" ? [k] : []))));
+  const [stage, setStage] = useState(() => (settledOnMount && revealed ? 2 : 0)); // 0 = 아직, 1 = 4칸 떠오름, 2 = 카드 펼침
+
   useEffect(() => {
     if (!revealed) return setStage(0);
+    if (settledOnMount) return setStage(2);
     setStage(1);
     const t = setTimeout(() => setStage(2), reduce ? 0 : 1200);
     return () => clearTimeout(t);
-  }, [revealed, reduce]);
+  }, [revealed, reduce, settledOnMount]);
 
-  // 카드가 펼쳐지면 화면 안으로 데려온다(아래로 펼쳐져 화면 밖에서 끝나는 일을 막기)
+  // 카드가 펼쳐지면 화면 안으로 데려온다(아래로 펼쳐져 화면 밖에서 끝나는 일을 막기). 끝난 결과로 돌아온 때는 움직이지 않는다.
   useEffect(() => {
-    if (stage !== 2) return;
+    if (stage !== 2 || settledOnMount) return;
     const t = setTimeout(() => cardsRef.current?.scrollIntoView({ block: "nearest", behavior: reduce ? "auto" : "smooth" }), reduce ? 0 : 260);
     return () => clearTimeout(t);
-  }, [stage, reduce]);
+  }, [stage, reduce, settledOnMount]);
 
   function showTip(k: number, el: HTMLElement) {
     const box = gridRef.current;
@@ -231,7 +237,7 @@ export function StoryGrid({ data, editingId, onEdit }: { data: GridData; editing
                         "transition-[scale,transform,opacity,filter,box-shadow,background-color] duration-500 ease-[cubic-bezier(.16,1,.3,1)]",
                         c.status === "wait" && ["bg-gray-100", running && "animate-[sg-wait_1.4s_ease-in-out_infinite]"],
                         c.status === "fail" && "border border-dashed border-gray-200 bg-gray-50",
-                        ok && data.phase === "filling" && "animate-[sg-pop_.45s_cubic-bezier(.16,1,.3,1)_both]",
+                        ok && data.phase === "filling" && !okOnMount.has(k) && "animate-[sg-pop_.45s_cubic-bezier(.16,1,.3,1)_both]",
                         ok && data.phase === "picking" && "animate-[sg-scan_1.8s_ease-in-out_infinite]",
                         dim && "scale-[.96] opacity-60 saturate-[.25]",
                         picked && "z-10 scale-[1.07]",
@@ -326,6 +332,7 @@ export function StoryGrid({ data, editingId, onEdit }: { data: GridData; editing
                   hook={data.rows[Math.floor(k / 9)]?.label ?? ""}
                   col={data.cols[k % 9]}
                   delay={i * 110}
+                  animate={!settledOnMount}
                   editing={editingId === p.id}
                   onHover={(on) => setCardHover(on ? p.id : null)}
                   onEdit={() => onEdit(p.id, cell.story, p.rank)}
@@ -339,13 +346,13 @@ export function StoryGrid({ data, editingId, onEdit }: { data: GridData; editing
   );
 }
 
-function PickCard({ pick, story, row, hook, col, delay, editing, onHover, onEdit }: { pick: GridPick; story: StoryResult; row: number; hook: string; col?: VariantCol; delay: number; editing: boolean; onHover: (on: boolean) => void; onEdit: () => void }) {
+function PickCard({ pick, story, row, hook, col, delay, animate, editing, onHover, onEdit }: { pick: GridPick; story: StoryResult; row: number; hook: string; col?: VariantCol; delay: number; animate: boolean; editing: boolean; onHover: (on: boolean) => void; onEdit: () => void }) {
   const tone = TONES[row] ?? TONES[0];
   return (
     <article
       onMouseEnter={() => onHover(true)}
       onMouseLeave={() => onHover(false)}
-      className={clsx("sg-anim min-w-0 animate-[sg-unfold_.6s_cubic-bezier(.2,.8,.2,1)_both] rounded-xl border bg-white p-3.5 shadow-xs sm:p-4", editing ? "border-blue-400 ring-2 ring-blue-100" : "border-gray-200")}
+      className={clsx("sg-anim min-w-0 rounded-xl border bg-white p-3.5 shadow-xs sm:p-4", animate && "animate-[sg-unfold_.6s_cubic-bezier(.2,.8,.2,1)_both]", editing ? "border-blue-400 ring-2 ring-blue-100" : "border-gray-200")}
       style={{ animationDelay: `${delay}ms` }}
     >
       <div className="flex flex-wrap items-center gap-1.5">
