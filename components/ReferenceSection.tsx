@@ -167,7 +167,7 @@ export function ReferenceSection() {
               <div className="competitor-account flex flex-wrap items-baseline gap-x-5 gap-y-1">
                 <span className="text-sm font-bold">@{r.username}</span>
                 <span className="text-[0.8125rem] text-gray-500">팔로워 {r.followers != null ? compact(r.followers) : "-"}</span>
-                <span className="text-[0.8125rem] text-gray-500">{fmtDate(r.posted_at)} 게시, {r.duration_s}초</span>
+                <span className="text-[0.8125rem] text-gray-500">{fmtDate(r.posted_at)} 게시{r.duration_s != null ? `, ${r.duration_s}초` : ""}</span>
               </div>
               <div className="competitor-metrics">
                 <span className="text-xl font-bold text-blue-600">{mult != null ? `평소 대비 ${mult >= 10 ? Math.round(mult) : mult.toFixed(1)}배` : "평소 대비 배수 -"}</span>

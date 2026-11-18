@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FeedItem } from "@/lib/feed";
 import { compact } from "@/lib/format";
-import { FeedMedia } from "./FeedMedia";
+import { FeedMedia, type MediaMode } from "./FeedMedia";
 import { createRootLayer } from "./rootLayer";
 
 const ACC: Record<string, string> = { "빡": "amber", "칼티": "blue", "무디": "violet", "크리에이지 공식": "green" };
@@ -28,6 +28,17 @@ export function SeedFeed({ items, grown, capture = false }: { items: FeedItem[];
   // 지금 편: 화면에 60% 넘게 들어온 릴스. 처음엔 없음(-1)이라, 씨앗 그림을 보는 동안 첫 영상이 보이지 않는 채로 재생되지 않는다.
   const [active, setActive] = useState(-1);
   const [muted, setMuted] = useState(true);
+  // 영상이 만료되거나 재생에 실패해 인스타 퍼가기 창으로 바뀐 편. 이 편에는 '소리 켜기' 단추를 보이지 않는다(눌러도 소리가 없다).
+  const [embedded, setEmbedded] = useState<ReadonlySet<string>>(() => new Set());
+  const markMode = useCallback((code: string, mode: MediaMode) => {
+    setEmbedded((s) => {
+      if (mode === "embed" ? s.has(code) : !s.has(code)) return s; // 바뀐 게 없으면 그대로(다시 그리지 않음)
+      const next = new Set(s);
+      if (mode === "embed") next.add(code);
+      else next.delete(code);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     const c = cv.current!, w = wrap.current!;
@@ -42,7 +53,7 @@ export function SeedFeed({ items, grown, capture = false }: { items: FeedItem[];
     let t = 0;
     const ro = new ResizeObserver(() => { clearTimeout(t); t = window.setTimeout(place, 150); });
     ro.observe(c);
-    return () => { ro.disconnect(); L.dispose(); };
+    return () => { clearTimeout(t); ro.disconnect(); L.dispose(); };
   }, []);
 
   useEffect(() => { if (grown) layer.current?.grow(); }, [grown]);
@@ -51,9 +62,16 @@ export function SeedFeed({ items, grown, capture = false }: { items: FeedItem[];
     const w = wrap.current!;
     // 머리줄에 가린 부분은 빼고, 보이는 칸에 60% 넘게 들어온 편이 지금 편이다.
     // 빨리 넘기면 들어오는 편과 나가는 편이 한 번에 보고되므로, 비율이 0.6 이상인 편만 고른다(나가는 편으로 되돌아가지 않게).
+    // 지금 편이 화면에서 거의 다 빠지면(15% 아래) 지금 편을 비운다. 그래야 위로 올라가 씨앗 그림을 볼 때나
+    // 마지막 편 아래로 내려갔을 때 영상이 보이지 않는 채로 계속 재생되거나 소리가 나지 않는다.
+    // 두 편 사이를 넘어가는 동안에는 한쪽이 15% 아래면 다른 쪽이 60%를 넘으므로, 지금 편이 비는 순간이 생기지 않는다.
     const io = new IntersectionObserver(
-      (es) => es.forEach((e) => { if (e.intersectionRatio >= 0.6) setActive(Number((e.target as HTMLElement).dataset.i)); }),
-      { threshold: 0.6, rootMargin: `${-headerPx()}px 0px 0px 0px` },
+      (es) => es.forEach((e) => {
+        const i = Number((e.target as HTMLElement).dataset.i);
+        if (e.intersectionRatio >= 0.6) setActive(i);
+        else if (e.intersectionRatio < 0.15) setActive((a) => (a === i ? -1 : a));
+      }),
+      { threshold: [0.15, 0.6], rootMargin: `${-headerPx()}px 0px 0px 0px` },
     );
     w.querySelectorAll(".seed-reel").forEach((el) => io.observe(el));
     // 땅속 구역이 화면에 조금이라도 들어오면 뿌리를 키운다. 구역이 릴스 수만큼 길어서(100편이면 화면의 약 100배)
@@ -75,6 +93,9 @@ export function SeedFeed({ items, grown, capture = false }: { items: FeedItem[];
       if (!down && !up) return;
       const t = e.target as HTMLElement | null;
       if (t?.closest?.("input, textarea, select, [contenteditable='true']")) return;
+      // 왼쪽 메뉴가 열려 있으면(닫힌 메뉴에는 inert가 붙는다) 뒤의 릴스를 넘기지 않는다.
+      const menu = document.getElementById("app-menu");
+      if (menu && !menu.hasAttribute("inert")) return;
       const w = wrap.current;
       if (!w) return;
       const reels = [...w.querySelectorAll<HTMLElement>(".seed-reel")];
@@ -112,8 +133,8 @@ export function SeedFeed({ items, grown, capture = false }: { items: FeedItem[];
           {capture && <p className="seed-hook-still">{firstSentence(it.hookStructure)}</p>}
           <div className="seed-reel-grid">
             <div className="seed-video">
-              {capture ? <div className="seed-video-ph seed-video-label">릴스 영상 자리 · @{it.username}</div> : Math.abs(i - active) <= 1 ? <FeedMedia item={it} active={i === active} muted={muted} /> : <div className="seed-video-ph" />}
-              {!capture && it.videoUrl && i === active && (
+              {capture ? <div className="seed-video-ph seed-video-label">릴스 영상 자리 · @{it.username}</div> : Math.abs(i - active) <= 1 ? <FeedMedia item={it} active={i === active} muted={muted} onMode={(m) => markMode(it.shortcode, m)} /> : <div className="seed-video-ph" />}
+              {!capture && it.videoUrl && i === active && !embedded.has(it.shortcode) && (
                 <button type="button" className="seed-sound press" onClick={() => setMuted((m) => !m)}>{muted ? "소리 켜기" : "소리 끄기"}</button>
               )}
             </div>
@@ -131,8 +152,8 @@ export function SeedFeed({ items, grown, capture = false }: { items: FeedItem[];
                 ))}
               </dl>
               <dl className="seed-spec">
-                <div><dt>편집 방법</dt><dd><ul>{lines(it.editMethod).map((l) => <li key={l}>{l}</li>)}</ul></dd></div>
-                <div><dt>훅 구조</dt><dd><ul>{lines(it.hookStructure).map((l) => <li key={l}>{l}</li>)}</ul></dd></div>
+                <div><dt>편집 방법</dt><dd><ul>{lines(it.editMethod).map((l, k) => <li key={k}>{l}</li>)}</ul></dd></div>
+                <div><dt>훅 구조</dt><dd><ul>{lines(it.hookStructure).map((l, k) => <li key={k}>{l}</li>)}</ul></dd></div>
               </dl>
               <section className="seed-ideas">
                 <h4>아이디어 씨앗 {it.ideas.length} · 어느 계정에 맞나</h4>

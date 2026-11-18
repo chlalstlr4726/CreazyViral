@@ -99,13 +99,18 @@ export function PerformanceSection({ accountId }: { accountId?: string } = {}) {
             <Panel key={k.label} className="p-5">
               <div className="text-[0.8125rem] text-gray-500">{k.label}</div>
               <div className="num mt-2 text-[1.75rem] font-bold tracking-tight">
-                {k.kind === "multiple" ? mult(k.value) : compact(k.value)}
+                {cur.length === 0 ? "–" : k.kind === "multiple" ? mult(k.value) : compact(k.value)}
               </div>
-              <div className={clsx("mt-1 flex items-center gap-0.5 text-xs font-semibold", up ? "text-emerald-600" : "text-red-500")}>
-                {up ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-                {k.kind === "multiple" ? `${up ? "+" : ""}${delta.toFixed(1)}x` : `${Math.abs(Math.round(delta * 100))}%`}
-                <span className="ml-1 font-normal text-gray-500">직전 {period}일 대비</span>
-              </div>
+              {cur.length === 0 ? (
+                // 고른 기간에 올린 게시물이 없으면 0과 하락 화살표 대신 '없음'을 보인다(0.0x는 성과가 0이라는 뜻으로 읽힘).
+                <div className="mt-1 text-xs text-gray-500">최근 {period}일 게시물 없음</div>
+              ) : (
+                <div className={clsx("mt-1 flex items-center gap-0.5 text-xs font-semibold", up ? "text-emerald-600" : "text-red-500")}>
+                  {up ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                  {k.kind === "multiple" ? `${up ? "+" : ""}${delta.toFixed(1)}x` : `${Math.abs(Math.round(delta * 100))}%`}
+                  <span className="ml-1 font-normal text-gray-500">직전 {period}일 대비</span>
+                </div>
+              )}
             </Panel>
           );
         })}

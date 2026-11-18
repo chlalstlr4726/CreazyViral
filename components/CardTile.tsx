@@ -114,7 +114,7 @@ export function CardTile({
         status === "passed" && "opacity-60",
       )}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <TypeBadge type={card.type} />
         <Chip>{card.format}</Chip>
         {recommended && (
@@ -132,17 +132,19 @@ export function CardTile({
 
       <h3 className="mt-4 text-[1.375rem] font-bold leading-snug tracking-tight">{card.title}</h3>
 
-      <div className="card-hook mt-5 rounded-lg bg-gray-50 p-4">
-        <div className="text-xs font-semibold text-gray-600">첫 장면</div>
-        <p className="mt-1 text-[0.9375rem] font-semibold text-gray-900">“{hook.caption}”</p>
-      </div>
+      {hook && (
+        <div className="card-hook mt-5 rounded-lg bg-gray-50 p-4">
+          <div className="text-xs font-semibold text-gray-600">첫 장면</div>
+          <p className="mt-1 text-[0.9375rem] font-semibold text-gray-900">“{hook.caption}”</p>
+        </div>
+      )}
 
       <details className="group mt-4">
         <summary className="flex w-fit cursor-pointer list-none items-center gap-1.5 rounded text-sm font-medium text-gray-700 focus-visible:outline-2 focus-visible:outline-offset-4">
           추천 이유와 제작 정보 <ChevronDown size={15} aria-hidden="true" className="group-open:rotate-180" />
         </summary>
         {card.rationale && <p className="mt-3 text-sm text-gray-600"><ReadableText text={card.rationale} /></p>}
-        <p className="mt-3 text-sm text-gray-600">첫 장면 (0–{hook.end_s}초) · {hook.visual}</p>
+        {hook && <p className="mt-3 text-sm text-gray-600">첫 장면 (0–{hook.end_s}초) · {hook.visual}</p>}
         <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
           <div>
             <dt className="mb-1.5 flex items-center gap-1 text-xs text-gray-400">제작 난이도</dt>

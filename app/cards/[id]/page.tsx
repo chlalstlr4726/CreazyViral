@@ -62,7 +62,7 @@ export default function CardDetail() {
 
       <div className="mb-8 flex items-start justify-between gap-6">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <TypeBadge type={card.type} />
             <Chip>{card.format}</Chip>
             <span className="text-sm text-gray-500">{koDate(card.date)}</span>
